@@ -114,6 +114,20 @@ func (c *Controller) UnlockControl() {
 	c.controlMu.Unlock()
 }
 
+func (c *Controller) IsCurrentClient(ip string) bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.clientIP == "" || c.clientIP == ip
+}
+
+func (c *Controller) LockControl() {
+	c.controlMu.Lock()
+}
+
+func (c *Controller) UnlockControl() {
+	c.controlMu.Unlock()
+}
+
 func (c *Controller) NewRequest() {
 	c.mu.Lock()
 	defer c.mu.Unlock()

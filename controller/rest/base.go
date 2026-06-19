@@ -35,8 +35,7 @@ func (s *Service) Start(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// An additive Start brings up one more core on a node that is already
-	// serving. A plain Start is the panel connecting, which resets the node so
-	// that it runs exactly the cores that connection brings and nothing stale.
+	// serving. A plain Start resets the node to the cores this connection brings.
 	additive := running && data.GetAdditive()
 	if running && !additive {
 		log.Println("New connection from ", ip, " core control access was taken away from previous client.")
