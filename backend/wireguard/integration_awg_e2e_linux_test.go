@@ -272,7 +272,10 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 	}
 	defer client.Close()
 
-	return client.ConfigureDevice(context.Background(), awgName, cfg)
+	if err := client.ConfigureDevice(context.Background(), awgName, cfg); err != nil {
+		return fmt.Errorf("ConfigureDevice(%s): %w", awgName, err)
+	}
+	return nil
 }
 
 func runAWG2EchoServer(ns netns.NsHandle, bindIP string, port int, stop <-chan struct{}, ready chan<- error, done chan<- struct{}) {
