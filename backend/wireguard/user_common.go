@@ -100,7 +100,7 @@ func (wg *WireGuard) buildSyncDiff(
 
 	for key, target := range targetPeers {
 		if _, exists := existingPeers[key]; !exists {
-			config, err := buildAddConfigFromPeerInfo(target, psk)
+			config, err := wg.buildAddConfigFromPeerInfo(target, psk)
 			if err != nil {
 				log.Printf("quarantining peer %s due to config error: %v", target.Email, err)
 				continue
