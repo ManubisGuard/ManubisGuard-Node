@@ -263,7 +263,7 @@ func (wg *WireGuard) restartLocked() error {
 	wg.mu.RUnlock()
 
 	psk, _ := wg.config.GetPreSharedKey()
-	peerConfigs, err := buildPeerConfigsForRestart(allPeers, psk)
+	peerConfigs, err := buildPeerConfigsForRestart(allPeers, psk, cfg.AmneziaWG)
 	if err != nil {
 		return fmt.Errorf("failed to build restart peer configs: %w", err)
 	}
@@ -313,7 +313,7 @@ func (wg *WireGuard) Shutdown() {
 	})
 }
 
-func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key) ([]wgtypes.PeerConfig, error) {
+func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key, amnezia bool) ([]wgtypes.PeerConfig, error) {
 	orderedPeers := append([]*PeerInfo(nil), peers...)
 	sort.Slice(orderedPeers, func(i, j int) bool {
 		return orderedPeers[i].PublicKey.String() < orderedPeers[j].PublicKey.String()
@@ -326,7 +326,7 @@ func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key) ([
 		}
 
 		peerConfig := buildAddConfig(peer.PublicKey, peer.AllowedIPs, presharedKey)
-		peerConfig.AdvancedSecurity = cfg.AmneziaWG
+		peerConfig.AdvancedSecurity = amnezia
 		peerConfigs = append(peerConfigs, peerConfig)
 	}
 
