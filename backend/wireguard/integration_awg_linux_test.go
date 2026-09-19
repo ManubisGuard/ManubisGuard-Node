@@ -26,7 +26,10 @@ func TestAmneziaWGKernelIntegration(t *testing.T) {
 
 	const name = "pg-awg-it0"
 
-	nl := netlink.NewHandle()
+	nl, err := netlink.NewHandle()
+	if err != nil {
+		t.Fatalf("open netlink handle: %v", err)
+	}
 	defer nl.Close()
 
 	_ = netlink.LinkDel(&netlink.GenericLink{
