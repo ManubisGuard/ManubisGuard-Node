@@ -281,12 +281,47 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 		return fmt.Errorf("ConfigureDevice(%s) device config: %w", awgName, err)
 	}
 
+	// Add the peer in progressively richer stages so an EINVAL can be
+	// attributed to one specific peer attribute.
+	basePeer := cfg.Peers[0]
+	basePeer.Endpoint = nil
+	basePeer.PersistentKeepaliveInterval = nil
+	basePeer.AdvancedSecurity = false
 	peerCfg := wgtypes.Config{
-		Peers: []wgtypes.PeerConfig{cfg.Peers[0]},
+		Peers: []wgtypes.PeerConfig{basePeer},
 		ReplacePeers: true,
 	}
 	if err := client.ConfigureDevice(context.Background(), awgName, peerCfg); err != nil {
-		return fmt.Errorf("ConfigureDevice(%s) peer config: %w", awgName, err)
+		return fmt.Errorf("ConfigureDevice(%s) peer base (key/allowed-ips): %w", awgName, err)
+	}
+
+	endpoint := cfg.Peers[0].Endpoint
+	if err := client.ConfigureDevice(context.Background(), awgName, wgtypes.Config{
+		Peers: []wgtypes.PeerConfig{{
+			PublicKey: cfg.Peers[0].PublicKey,
+			Endpoint: endpoint,
+		}},
+	}); err != nil {
+		return fmt.Errorf("ConfigureDevice(%s) peer endpoint: %w", awgName, err)
+	}
+
+	keepalive := cfg.Peers[0].PersistentKeepaliveInterval
+	if err := client.ConfigureDevice(context.Background(), awgName, wgtypes.Config{
+		Peers: []wgtypes.PeerConfig{{
+			PublicKey: cfg.Peers[0].PublicKey,
+			PersistentKeepaliveInterval: keepalive,
+		}},
+	}); err != nil {
+		return fmt.Errorf("ConfigureDevice(%s) peer keepalive: %w", awgName, err)
+	}
+
+	if err := client.ConfigureDevice(context.Background(), awgName, wgtypes.Config{
+		Peers: []wgtypes.PeerConfig{{
+			PublicKey: cfg.Peers[0].PublicKey,
+			AdvancedSecurity: true,
+		}},
+	}); err != nil {
+		return fmt.Errorf("ConfigureDevice(%s) peer advanced-security: %w", awgName, err)
 	}
 	return nil
 }
