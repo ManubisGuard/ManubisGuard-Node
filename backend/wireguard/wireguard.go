@@ -326,7 +326,9 @@ func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key) ([
 			return nil, fmt.Errorf("peer %s has no allowed IPs", peer.Email)
 		}
 
-		peerConfigs = append(peerConfigs, buildAddConfig(peer.PublicKey, peer.AllowedIPs, presharedKey))
+		peerConfig := buildAddConfig(peer.PublicKey, peer.AllowedIPs, presharedKey)
+		peerConfig.AdvancedSecurity = wg.config.AmneziaWG
+		peerConfigs = append(peerConfigs, peerConfig)
 	}
 
 	return peerConfigs, nil
