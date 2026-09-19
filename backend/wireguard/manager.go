@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -16,6 +17,12 @@ type wgClient interface {
 	Device(name string) (*wgtypes.Device, error)
 	Close() error
 }
+
+type wgClientAdapter struct { client *wgctrl.Client }
+
+func (a *wgClientAdapter) ConfigureDevice(name string, cfg wgtypes.Config) error { return a.client.ConfigureDevice(context.Background(), name, cfg) }
+func (a *wgClientAdapter) Device(name string) (*wgtypes.Device, error) { return a.client.Device(context.Background(), name) }
+func (a *wgClientAdapter) Close() error { return a.client.Close() }
 
 type netlinkOps interface {
 	ParseAddr(string) (*netlink.Addr, error)
@@ -88,13 +95,13 @@ func NewManager(interfaceName string) (*Manager, error) { return newManager(inte
 func NewManagerWithType(interfaceName, linkType string) (*Manager, error) { return newManager(interfaceName, linkType) }
 
 func newManager(interfaceName, linkType string) (*Manager, error) {
-	client, err := wgctrl.New()
+	rawClient, err := wgctrl.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create wgctrl client: %w", err)
 	}
 
 	return &Manager{
-		client:    client,
+		client:    &wgClientAdapter{client: rawClient},
 		iFaceName: interfaceName,
 		linkType: linkType,
 		nl:        defaultNetlinkOps{},
