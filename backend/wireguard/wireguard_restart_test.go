@@ -8,7 +8,7 @@ import (
 	"github.com/pasarguard/node/common"
 	nodeconfig "github.com/pasarguard/node/config"
 	"github.com/vishvananda/netlink"
-	"github.com/advanced-wg/awgctrl-go/wgtypes"
+	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
 func TestWireGuardRestartConcurrentWithShutdown(t *testing.T) {
