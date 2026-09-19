@@ -141,7 +141,7 @@ func (wg *WireGuard) buildSyncDiff(
 // Returns the config slice AND the set of public keys that were successfully
 // built, so callers can filter the peerStore upsert list accordingly — the
 // store must only contain peers that were actually committed to the kernel.
-func buildTargetPeerConfigs(targetPeers map[string]*PeerInfo, presharedKey *wgtypes.Key) ([]wgtypes.PeerConfig, map[string]struct{}) {
+func (wg *WireGuard) buildTargetPeerConfigs(targetPeers map[string]*PeerInfo, presharedKey *wgtypes.Key) ([]wgtypes.PeerConfig, map[string]struct{}) {
 	keys := make([]string, 0, len(targetPeers))
 	for key := range targetPeers {
 		keys = append(keys, key)
