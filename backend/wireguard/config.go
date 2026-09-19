@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Advanced-WG/awgctrl-go/wgtypes"
 )
 
 // Config represents the WireGuard configuration
