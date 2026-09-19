@@ -246,7 +246,6 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 	s1, s2, s3, s4 := 16, 17, 18, 4
 	h1, h2, h3, h4 := "123456-123999", "223456-223999", "323456-323999", "423456-423999"
 	i1, i2, i3, i4, i5 := "<r 16>", "<r 32>", "<r 8>", "<r 24>", "<r 12>"
-	keepalive := 1 * time.Second
 
 	cfg := wgtypes.Config{
 		PrivateKey: &privateKey,
@@ -258,7 +257,6 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 		Peers: []wgtypes.PeerConfig{{
 			PublicKey:         peerPublicKey,
 			Endpoint:           &net.UDPAddr{IP: net.ParseIP(remoteTransport), Port: remotePort},
-			PersistentKeepaliveInterval: &keepalive,
 			ReplaceAllowedIPs: true,
 			AllowedIPs:        []net.IPNet{*remoteWGIP},
 			AdvancedSecurity:  true,
@@ -305,15 +303,6 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 		return fmt.Errorf("ConfigureDevice(%s) peer endpoint: %w", awgName, err)
 	}
 
-	keepalivePtr := cfg.Peers[0].PersistentKeepaliveInterval
-	if err := client.ConfigureDevice(context.Background(), awgName, wgtypes.Config{
-		Peers: []wgtypes.PeerConfig{{
-			PublicKey: cfg.Peers[0].PublicKey,
-			PersistentKeepaliveInterval: keepalivePtr,
-		}},
-	}); err != nil {
-		return fmt.Errorf("ConfigureDevice(%s) peer keepalive: %w", awgName, err)
-	}
 
 	if err := client.ConfigureDevice(context.Background(), awgName, wgtypes.Config{
 		Peers: []wgtypes.PeerConfig{{
