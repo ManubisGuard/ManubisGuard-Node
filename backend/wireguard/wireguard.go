@@ -316,7 +316,8 @@ func (wg *WireGuard) Shutdown() {
 	})
 }
 
-func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key, amnezia bool) ([]wgtypes.PeerConfig, error) {
+func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key, amneziaFlag ...bool) ([]wgtypes.PeerConfig, error) {
+	amnezia := len(amneziaFlag) > 0 && amneziaFlag[0]
 	orderedPeers := append([]*PeerInfo(nil), peers...)
 	sort.Slice(orderedPeers, func(i, j int) bool {
 		return orderedPeers[i].PublicKey.String() < orderedPeers[j].PublicKey.String()
