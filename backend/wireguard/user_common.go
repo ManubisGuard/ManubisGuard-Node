@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pasarguard/node/common"
-	"github.com/Advanced-WG/awgctrl-go/wgtypes"
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 )
 
 var (
