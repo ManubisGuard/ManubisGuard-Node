@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/pasarguard/node/common"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Advanced-WG/awgctrl-go/wgtypes"
 )
 
 var (
