@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/vishvananda/netlink"
-	"github.com/advanced-wg/awgctrl-go/wgtypes"
+	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
 func linkNotFoundError() error {
