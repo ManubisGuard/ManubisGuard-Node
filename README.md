@@ -43,6 +43,15 @@ ip link del awg-test
 
 In Docker, the container needs `CAP_NET_ADMIN` (normally configured as `NET_ADMIN`) and access to the host network namespace if the deployment uses host networking. The kernel module is provided by the host, not by the container image.
 
+For an opt-in real-kernel integration check on a Linux test host, run the node package tests as root (or with `CAP_NET_ADMIN`) after loading the module:
+
+```bash
+export PASARGUARD_AWG_INTEGRATION=yesreallydoit
+go test ./backend/wireguard -run TestAmneziaWGKernelIntegration -v
+```
+
+This test creates a temporary `amneziawg` interface, configures J/S/H/I parameters and a peer through `awgctrl-go`, reads the values back through generic netlink, verifies peer `AdvancedSecurity`, removes the peer, and cleans up the interface. It is intentionally not enabled in ordinary CI because GitHub-hosted runners do not provide the required AmneziaWG kernel module.
+
 AWG parameters (`Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`) are carried in the node backend configuration and applied through the AmneziaWG generic-netlink family. Compatible clients must understand the same AWG version/configuration; ordinary WireGuard clients do not understand the AWG-specific parameters.
 
 # Donation
