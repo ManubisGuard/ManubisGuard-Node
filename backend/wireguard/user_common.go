@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/advanced-wg/awgctrl-go/wgtypes"
+	"github.com/awg-go/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
 )
 
