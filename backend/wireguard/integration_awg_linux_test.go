@@ -5,7 +5,7 @@ package wireguard
 
 import (
 	"context"
-	"errors"
+	"net"
 	"os"
 	"testing"
 
@@ -154,9 +154,6 @@ func TestAmneziaWGKernelIntegration(t *testing.T) {
 		t.Fatalf("peer count after removal = %d, want 0", len(device.Peers))
 	}
 
-	// Confirm that the userspace API reports the expected missing-device
-	// behavior after the real interface is removed by the test cleanup.
-	_ = errors.Is(err, os.ErrNotExist)
 }
 
 func mustIntegrationCIDR(t *testing.T, s string) net.IPNet {
