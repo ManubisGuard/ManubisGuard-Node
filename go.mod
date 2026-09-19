@@ -11,7 +11,7 @@ require (
 	github.com/vishvananda/netlink v1.3.1
 	github.com/xtls/xray-core v1.260327.0
 	golang.org/x/sys v0.47.0
-	github.com/Advanced-WG/awgctrl-go v0.0.0-20260201000000-000000000000
+	github.com/Advanced-WG/awgctrl-go v0.0.0-20260405190701-9052d07a8e00
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
 )
