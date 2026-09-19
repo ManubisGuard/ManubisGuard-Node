@@ -180,7 +180,10 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 
 	// Initialize the WireGuard interface with peers in the same kernel configure call.
 	if wgConfig.AmneziaWG {
-		if err := wgConfig.ValidateAmnezia(); err != nil { manager.Close(); return nil, fmt.Errorf("invalid AmneziaWG config: %w", err) }
+		if err := wgConfig.ValidateAmnezia(); err != nil {
+			manager.Close()
+			return nil, fmt.Errorf("invalid AmneziaWG config: %w", err)
+		}
 		err = manager.InitializeWithPeersAndConfig(privateKey, wgConfig.ListenPort, wgConfig.Address, startupPeerConfigs, wgConfig.AmneziaConfig())
 	} else {
 		err = manager.InitializeWithPeers(privateKey, wgConfig.ListenPort, wgConfig.Address, startupPeerConfigs)
