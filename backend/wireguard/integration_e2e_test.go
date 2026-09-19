@@ -16,7 +16,7 @@ import (
 
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/config"
-	"github.com/advanced-wg/awgctrl-go/wgtypes"
+	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
 const (
