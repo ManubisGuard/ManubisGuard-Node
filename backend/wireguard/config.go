@@ -19,23 +19,23 @@ type Config struct {
 	ListenPort    int            `json:"listen_port"`
 	Address       []string       `json:"address"`
 	Latency       *LatencyConfig `json:"latency,omitempty"`
-	AmneziaWG bool `json:"amneziawg,omitempty"`
-	Jc *int `json:"jc,omitempty"`
-	Jmin *int `json:"jmin,omitempty"`
-	Jmax *int `json:"jmax,omitempty"`
-	S1 *int `json:"s1,omitempty"`
-	S2 *int `json:"s2,omitempty"`
-	S3 *int `json:"s3,omitempty"`
-	S4 *int `json:"s4,omitempty"`
-	H1 *string `json:"h1,omitempty"`
-	H2 *string `json:"h2,omitempty"`
-	H3 *string `json:"h3,omitempty"`
-	H4 *string `json:"h4,omitempty"`
-	I1 *string `json:"i1,omitempty"`
-	I2 *string `json:"i2,omitempty"`
-	I3 *string `json:"i3,omitempty"`
-	I4 *string `json:"i4,omitempty"`
-	I5 *string `json:"i5,omitempty"`
+	AmneziaWG bool    `json:"amneziawg,omitempty"`
+	Jc         *int    `json:"jc,omitempty"`
+	Jmin       *int    `json:"jmin,omitempty"`
+	Jmax       *int    `json:"jmax,omitempty"`
+	S1         *int    `json:"s1,omitempty"`
+	S2         *int    `json:"s2,omitempty"`
+	S3         *int    `json:"s3,omitempty"`
+	S4         *int    `json:"s4,omitempty"`
+	H1         *string `json:"h1,omitempty"`
+	H2         *string `json:"h2,omitempty"`
+	H3         *string `json:"h3,omitempty"`
+	H4         *string `json:"h4,omitempty"`
+	I1         *string `json:"i1,omitempty"`
+	I2         *string `json:"i2,omitempty"`
+	I3         *string `json:"i3,omitempty"`
+	I4         *string `json:"i4,omitempty"`
+	I5         *string `json:"i5,omitempty"`
 
 	privateKeyValue   wgtypes.Key
 	privateKeySet     bool
@@ -94,17 +94,26 @@ func NewConfig(config string) (*Config, error) {
 	if wgConfig.Latency.TimeoutSeconds <= 0 {
 		wgConfig.Latency.TimeoutSeconds = 5
 	}
-	if err := wgConfig.ValidateAmnezia(); err != nil { return nil, fmt.Errorf("invalid AmneziaWG configuration: %w", err) }
+	if err := wgConfig.ValidateAmnezia(); err != nil {
+		return nil, fmt.Errorf("invalid AmneziaWG configuration: %w", err)
+	}
 
 	return &wgConfig, nil
 }
 
 func (c *Config) AmneziaConfig() wgtypes.Config {
-	return wgtypes.Config{Jc:c.Jc,Jmin:c.Jmin,Jmax:c.Jmax,S1:c.S1,S2:c.S2,S3:c.S3,S4:c.S4,H1:c.H1,H2:c.H2,H3:c.H3,H4:c.H4,I1:c.I1,I2:c.I2,I3:c.I3,I4:c.I4,I5:c.I5}
+	return wgtypes.Config{
+		Jc: c.Jc, Jmin: c.Jmin, Jmax: c.Jmax,
+		S1: c.S1, S2: c.S2, S3: c.S3, S4: c.S4,
+		H1: c.H1, H2: c.H2, H3: c.H3, H4: c.H4,
+		I1: c.I1, I2: c.I2, I3: c.I3, I4: c.I4, I5: c.I5,
+	}
 }
 
 func (c *Config) ValidateAmnezia() error {
-	if !c.AmneziaWG { return nil }
+	if !c.AmneziaWG {
+		return nil
+	}
 	return c.AmneziaConfig().Validate()
 }
 
