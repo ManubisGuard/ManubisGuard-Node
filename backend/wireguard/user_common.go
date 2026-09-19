@@ -8,8 +8,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/pasarguard/node/common"
 	"github.com/advanced-wg/awgctrl-go/wgtypes"
+	"github.com/pasarguard/node/common"
 )
 
 var (
