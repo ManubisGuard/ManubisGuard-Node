@@ -173,6 +173,9 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 	}
 	psk, _ := wgConfig.GetPreSharedKey()
 	startupPeerConfigs, appliedKeys := buildTargetPeerConfigs(startupDiff.TargetPeers, psk)
+	if wgConfig.AmneziaWG {
+		for i := range startupPeerConfigs { startupPeerConfigs[i].AdvancedSecurity = true }
+	}
 
 	manager, err := wg.newManager(wgConfig.InterfaceName)
 	if err != nil {
