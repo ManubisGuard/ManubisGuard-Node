@@ -7,7 +7,7 @@ import (
 
 	"github.com/pasarguard/node/config"
 	pkgstats "github.com/pasarguard/node/pkg/stats"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 )
 
 func TestUpdateConnectedPeersSkipsStaleHandshakePeers(t *testing.T) {
