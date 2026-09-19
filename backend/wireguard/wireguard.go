@@ -121,7 +121,7 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 	if managerFactory == nil {
 		managerFactory = NewManager
 	}
-	if wgConfig != nil && wgConfig.AmneziaWG && managerFactory == NewManager {
+	if wgConfig != nil && wgConfig.AmneziaWG {
 		managerFactory = func(name string) (*Manager, error) { return NewManagerWithType(name, "amneziawg") }
 	}
 
