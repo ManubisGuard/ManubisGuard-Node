@@ -22,6 +22,7 @@ func buildAddConfig(publicKey wgtypes.Key, allowedIPs []net.IPNet, presharedKey 
 		PublicKey:                   publicKey,
 		AllowedIPs:                  allowedIPs,
 		PersistentKeepaliveInterval: keepAlive,
+		AdvancedSecurity: false,
 	}
 	if presharedKey != nil {
 		config.PresharedKey = presharedKey
@@ -184,7 +185,9 @@ func buildAddConfigFromPeerInfo(peer *PeerInfo, presharedKey *wgtypes.Key) (wgty
 		return wgtypes.PeerConfig{}, fmt.Errorf("peer %s has no allowed IPs", peer.Email)
 	}
 
-	return buildAddConfig(peer.PublicKey, peer.AllowedIPs, presharedKey), nil
+	config := buildAddConfig(peer.PublicKey, peer.AllowedIPs, presharedKey)
+	config.AdvancedSecurity = wg.config.AmneziaWG
+	return config, nil
 }
 
 func peerIPAllowedOnInterface(peerNet *net.IPNet, ifaceNets []*net.IPNet) bool {
