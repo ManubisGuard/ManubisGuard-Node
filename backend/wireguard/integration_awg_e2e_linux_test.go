@@ -272,8 +272,21 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 	}
 	defer client.Close()
 
-	if err := client.ConfigureDevice(context.Background(), awgName, cfg); err != nil {
-		return fmt.Errorf("ConfigureDevice(%s): %w", awgName, err)
+	// Configure the device first, then add the peer separately. This makes
+	// kernel/netlink failures attributable to the device or peer operation.
+	deviceCfg := cfg
+	deviceCfg.Peers = nil
+	deviceCfg.ReplacePeers = false
+	if err := client.ConfigureDevice(context.Background(), awgName, deviceCfg); err != nil {
+		return fmt.Errorf("ConfigureDevice(%s) device config: %w", awgName, err)
+	}
+
+	peerCfg := wgtypes.Config{
+		Peers: []wgtypes.PeerConfig{cfg.Peers[0]},
+		ReplacePeers: true,
+	}
+	if err := client.ConfigureDevice(context.Background(), awgName, peerCfg); err != nil {
+		return fmt.Errorf("ConfigureDevice(%s) peer config: %w", awgName, err)
 	}
 	return nil
 }
