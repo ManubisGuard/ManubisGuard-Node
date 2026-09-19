@@ -24,6 +24,22 @@ The easiest way to install PasarGuard Node is using our automated installation s
 sudo bash -c "$(curl -sL https://github.com/PasarGuard/scripts/raw/main/pg-node.sh)" @ install
 ```
 
+## AmneziaWG
+
+This fork supports AmneziaWG v2-style kernel interfaces in addition to standard WireGuard. The node uses the AmneziaWG-aware awgctrl-go library and creates interfaces with the Linux `amneziawg` link type when the panel sends an AWG backend config.
+
+### Host requirement
+
+The Linux host running the node must have an AmneziaWG kernel module installed and loaded:
+
+```bash
+sudo modprobe amneziawg
+```
+
+In Docker, keep `NET_ADMIN` and host networking enabled. The kernel module is provided by the host, not by the container image.
+
+AWG parameters (`Jc`, `Jmin`, `Jmax`, `S1-S4`, `H1-H4`, `I1-I5`) are carried in the node backend configuration and applied through netlink. The same negotiated parameters must be used by compatible clients where required by the AWG version.
+
 # Donation
 You can help PasarGuard team with your donations, [Click Here](https://donate.pasarguard.org/)
 
