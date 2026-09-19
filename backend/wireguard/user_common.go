@@ -86,7 +86,7 @@ func (wg *WireGuard) buildSyncDiff(
 
 		if existing.Email != target.Email || !ipnetsEqual {
 			if !ipnetsEqual {
-				config, err := buildAddConfigFromPeerInfo(target, psk)
+				config, err := wg.buildAddConfigFromPeerInfo(target, psk)
 				if err != nil {
 					log.Printf("quarantining peer update %s due to config error: %v", target.Email, err)
 					continue
@@ -151,7 +151,7 @@ func (wg *WireGuard) buildTargetPeerConfigs(targetPeers map[string]*PeerInfo, pr
 	configs := make([]wgtypes.PeerConfig, 0, len(keys))
 	appliedKeys := make(map[string]struct{}, len(keys))
 	for _, key := range keys {
-		config, err := buildAddConfigFromPeerInfo(targetPeers[key], presharedKey)
+		config, err := wg.buildAddConfigFromPeerInfo(targetPeers[key], presharedKey)
 		if err != nil {
 			log.Printf("quarantining startup peer %s due to config error: %v", targetPeers[key].Email, err)
 			continue
@@ -179,7 +179,7 @@ func filterUpsertsByAppliedKeys(upserts []*PeerInfo, appliedKeys map[string]stru
 	return filtered
 }
 
-func buildAddConfigFromPeerInfo(peer *PeerInfo, presharedKey *wgtypes.Key) (wgtypes.PeerConfig, error) {
+func (wg *WireGuard) buildAddConfigFromPeerInfo(peer *PeerInfo, presharedKey *wgtypes.Key) (wgtypes.PeerConfig, error) {
 	if len(peer.AllowedIPs) == 0 {
 		return wgtypes.PeerConfig{}, fmt.Errorf("peer %s has no allowed IPs", peer.Email)
 	}
