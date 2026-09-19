@@ -60,3 +60,4 @@ require (
 	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
+replace github.com/advanced-wg/awgctrl-go => github.com/awg-go/awgctrl-go v0.0.0-20260821195913-c71c1641a470
