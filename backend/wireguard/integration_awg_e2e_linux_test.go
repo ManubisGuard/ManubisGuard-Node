@@ -211,10 +211,10 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 
 	transportIP := &net.IPNet{IP: net.ParseIP(localTransport), Mask: net.CIDRMask(30, 32)}
 	if err := nl.AddrAdd(veth, &netlink.Addr{IPNet: transportIP}); err != nil {
-		return err
+		return fmt.Errorf("add transport address %s: %w", localTransport, err)
 	}
 	if err := nl.LinkSetUp(veth); err != nil {
-		return err
+		return fmt.Errorf("set transport link up: %w", err)
 	}
 
 	awgLink := &netlink.GenericLink{
@@ -222,15 +222,15 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 		LinkType:  "amneziawg",
 	}
 	if err := nl.LinkAdd(awgLink); err != nil {
-		return err
+		return fmt.Errorf("add amneziawg link: %w", err)
 	}
 	if err := nl.LinkSetUp(awgLink); err != nil {
-		return err
+		return fmt.Errorf("set amneziawg link up: %w", err)
 	}
 
 	wgIP := &net.IPNet{IP: net.ParseIP(localWG), Mask: net.CIDRMask(32, 32)}
 	if err := nl.AddrAdd(awgLink, &netlink.Addr{IPNet: wgIP}); err != nil {
-		return err
+		return fmt.Errorf("add AWG address %s: %w", localWG, err)
 	}
 
 	remoteWGIP := &net.IPNet{IP: net.ParseIP(remoteWG), Mask: net.CIDRMask(32, 32)}
@@ -239,7 +239,7 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 		Dst:       remoteWGIP,
 		Scope:     netlink.SCOPE_LINK,
 	}); err != nil {
-		return err
+		return fmt.Errorf("add AWG route to %s: %w", remoteWG, err)
 	}
 
 	jc, jmin, jmax := 3, 64, 128
