@@ -7,8 +7,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/advanced-wg/awgctrl-go"
-	"github.com/advanced-wg/awgctrl-go/wgtypes"
+	"github.com/awg-go/awgctrl-go"
+	"github.com/awg-go/awgctrl-go/wgtypes"
 	"github.com/vishvananda/netlink"
 )
 
