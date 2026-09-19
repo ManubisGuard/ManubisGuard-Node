@@ -367,3 +367,65 @@ func TestManagerApplyPeersReplaceAllNilClient(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+
+func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *testing.T) {
+	var addedLink netlink.Link
+	var configured wgtypes.Config
+	mock := mockNetlinkOps{
+		parseAddrFn: func(_ string) (*netlink.Addr, error) { return &netlink.Addr{}, nil },
+		linkAddFn: func(link netlink.Link) error {
+			addedLink = link
+			return nil
+		},
+		linkByName: func(name string) (netlink.Link, error) {
+			return &netlink.Dummy{LinkAttrs: netlink.LinkAttrs{Name: name, Flags: net.FlagUp}}, nil
+		},
+		addrAddFn: func(_ netlink.Link, _ *netlink.Addr) error { return nil },
+		linkSetUpFn: func(_ netlink.Link) error { return nil },
+		linkDelFn: func(_ netlink.Link) error { return nil },
+	}
+
+	manager := &Manager{
+		iFaceName: "awg-test",
+		linkType: "amneziawg",
+		client: &fakeWGClient{},
+		nl: mock,
+		configure: func(_ wgClient, _ string, cfg wgtypes.Config) error {
+			configured = cfg
+			return nil
+		},
+	}
+
+	jc, jmin, jmax := 3, 64, 128
+	s1, s2, s3, s4 := 16, 17, 18, 4
+	h1, h2, h3, h4 := "123456-123999", "223456-223999", "323456-323999", "423456-423999"
+	i1, i2, i3, i4, i5 := "<r 16>", "<r 32>", "<r 8>", "<r 24>", "<r 12>"
+	extra := wgtypes.Config{
+		Jc: &jc, Jmin: &jmin, Jmax: &jmax,
+		S1: &s1, S2: &s2, S3: &s3, S4: &s4,
+		H1: &h1, H2: &h2, H3: &h3, H4: &h4,
+		I1: &i1, I2: &i2, I3: &i3, I4: &i4, I5: &i5,
+	}
+
+	if err := manager.InitializeWithPeersAndConfig(wgtypes.Key{}, 51820, []string{"10.0.0.1/24"}, nil, extra); err != nil {
+		t.Fatalf("unexpected initialize error: %v", err)
+	}
+
+	generic, ok := addedLink.(*netlink.GenericLink)
+	if !ok {
+		t.Fatalf("expected GenericLink for AmneziaWG, got %T", addedLink)
+	}
+	if generic.LinkType != "amneziawg" {
+		t.Fatalf("link type = %q, want amneziawg", generic.LinkType)
+	}
+	if configured.Jc == nil || *configured.Jc != jc ||
+		configured.Jmin == nil || *configured.Jmin != jmin ||
+		configured.Jmax == nil || *configured.Jmax != jmax ||
+		configured.S1 == nil || *configured.S1 != s1 ||
+		configured.S4 == nil || *configured.S4 != s4 ||
+		configured.H1 == nil || *configured.H1 != h1 ||
+		configured.I5 == nil || *configured.I5 != i5 {
+		t.Fatalf("AWG configuration was not propagated: %+v", configured)
+	}
+}
