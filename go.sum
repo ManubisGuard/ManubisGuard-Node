@@ -279,3 +279,5 @@ golang.org/x/sync v0.19.0 h1:vV+1eWNmZ5geRlYjzm2adRgW2/mcpevXNg50YZtPCE4=
 golang.org/x/sync v0.19.0/go.mod h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI=
 golang.org/x/sys v0.39.0 h1:CvCKL8MeisomCi6qNZ+wbb0DN9E5AATixKsvNtMoMFk=
 golang.org/x/sys v0.39.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+github.com/awg-go/awgctrl-go v0.0.0-20260821200017-c71c1641a470 h1:krDraY3XNOz23Q7ngz9GTI3qm+GKP5k6fF3lpfivUnY=
+github.com/awg-go/awgctrl-go v0.0.0-20260821200017-c71c1641a470/go.mod h1:bd5QiT1ODBkQoXFOOj04dg+xkWUDY+gV/fq5kTt83KM=
