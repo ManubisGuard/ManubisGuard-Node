@@ -187,7 +187,6 @@ func (m *Manager) initializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 
 	// Create WireGuard interface
 	var link netlink.Link
-	var link netlink.Link
 	if m.linkType == "amneziawg" {
 		link = &netlink.GenericLink{
 			LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName},
