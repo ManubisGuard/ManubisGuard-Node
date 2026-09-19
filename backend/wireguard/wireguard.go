@@ -121,6 +121,9 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 	if managerFactory == nil {
 		managerFactory = NewManager
 	}
+	if wgConfig != nil && wgConfig.AmneziaWG && managerFactory == NewManager {
+		managerFactory = func(name string) (*Manager, error) { return NewManagerWithType(name, "amneziawg") }
+	}
 
 	wgCtx, wgCancel := context.WithCancel(context.Background())
 
@@ -177,7 +180,13 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 	}
 
 	// Initialize the WireGuard interface with peers in the same kernel configure call.
-	if err = manager.InitializeWithPeers(privateKey, wgConfig.ListenPort, wgConfig.Address, startupPeerConfigs); err != nil {
+	if wgConfig.AmneziaWG {
+		if err := wgConfig.ValidateAmnezia(); err != nil { manager.Close(); return nil, fmt.Errorf("invalid AmneziaWG config: %w", err) }
+		err = manager.InitializeWithPeersAndConfig(privateKey, wgConfig.ListenPort, wgConfig.Address, startupPeerConfigs, wgConfig.AmneziaConfig())
+	} else {
+		err = manager.InitializeWithPeers(privateKey, wgConfig.ListenPort, wgConfig.Address, startupPeerConfigs)
+	}
+	if err != nil {
 		manager.Close()
 		return nil, fmt.Errorf("failed to initialize interface: %w", err)
 	}
@@ -276,6 +285,13 @@ func (wg *WireGuard) restartLocked() error {
 		ListenPort:   &listenPort,
 		Peers:        peerConfigs,
 		ReplacePeers: true,
+	}
+	if cfg.AmneziaWG {
+		extra := cfg.AmneziaConfig()
+		config.Jc, config.Jmin, config.Jmax = extra.Jc, extra.Jmin, extra.Jmax
+		config.S1, config.S2, config.S3, config.S4 = extra.S1, extra.S2, extra.S3, extra.S4
+		config.H1, config.H2, config.H3, config.H4 = extra.H1, extra.H2, extra.H3, extra.H4
+		config.I1, config.I2, config.I3, config.I4, config.I5 = extra.I1, extra.I2, extra.I3, extra.I4, extra.I5
 	}
 
 	if err := manager.ApplyConfig(config); err != nil {
