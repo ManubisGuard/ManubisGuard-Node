@@ -22,7 +22,6 @@ func buildAddConfig(publicKey wgtypes.Key, allowedIPs []net.IPNet, presharedKey 
 		PublicKey:                   publicKey,
 		AllowedIPs:                  allowedIPs,
 		PersistentKeepaliveInterval: keepAlive,
-		AdvancedSecurity: false,
 	}
 	if presharedKey != nil {
 		config.PresharedKey = presharedKey
