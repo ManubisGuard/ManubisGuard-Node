@@ -114,8 +114,8 @@ func (c *Config) ValidateAmnezia() error {
 	if !c.AmneziaWG {
 		return nil
 	}
-	cfg := c.AmneziaConfig()\n\treturn cfg.Validate()
-}
+cfg := c.AmneziaConfig()
+	return cfg.Validate()
 
 // InterfaceNetworks returns CIDR prefixes parsed from the node's core `address` list.
 // Used to restrict peer AllowedIPs to subnets this interface actually serves.
