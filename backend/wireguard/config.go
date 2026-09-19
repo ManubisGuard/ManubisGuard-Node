@@ -84,7 +84,6 @@ func NewConfig(config string) (*Config, error) {
 
 	if wgConfig.ListenPort <= 0 {
 		wgConfig.ListenPort = 51820
-		if wgConfig.AmneziaWG { wgConfig.ListenPort = 51821 }
 	}
 	if wgConfig.Latency == nil {
 		wgConfig.Latency = &LatencyConfig{}
