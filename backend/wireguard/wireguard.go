@@ -174,7 +174,6 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 	psk, _ := wgConfig.GetPreSharedKey()
 	startupPeerConfigs, appliedKeys := buildTargetPeerConfigs(startupDiff.TargetPeers, psk)
 	if wgConfig.AmneziaWG {
-		for i := range startupPeerConfigs { startupPeerConfigs[i].AdvancedSecurity = true }
 	}
 
 	manager, err := wg.newManager(wgConfig.InterfaceName)
@@ -330,7 +329,6 @@ func buildPeerConfigsForRestart(peers []*PeerInfo, presharedKey *wgtypes.Key) ([
 		}
 
 		peerConfig := buildAddConfig(peer.PublicKey, peer.AllowedIPs, presharedKey)
-		peerConfig.AdvancedSecurity = wg.config.AmneziaWG
 		peerConfigs = append(peerConfigs, peerConfig)
 	}
 
