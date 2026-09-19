@@ -7,8 +7,8 @@ import (
 	"sync"
 	"syscall"
 
-	"github.com/vishvananda/netlink"
 	"github.com/advanced-wg/awgctrl-go"
+	"github.com/vishvananda/netlink"
 	"github.com/advanced-wg/awgctrl-go/wgtypes"
 )
 
@@ -18,11 +18,21 @@ type wgClient interface {
 	Close() error
 }
 
-type wgClientAdapter struct { client *wgctrl.Client }
+type wgClientAdapter struct {
+	client *wgctrl.Client
+}
 
-func (a *wgClientAdapter) ConfigureDevice(name string, cfg wgtypes.Config) error { return a.client.ConfigureDevice(context.Background(), name, cfg) }
-func (a *wgClientAdapter) Device(name string) (*wgtypes.Device, error) { return a.client.Device(context.Background(), name) }
-func (a *wgClientAdapter) Close() error { return a.client.Close() }
+func (a *wgClientAdapter) ConfigureDevice(name string, cfg wgtypes.Config) error {
+	return a.client.ConfigureDevice(context.Background(), name, cfg)
+}
+
+func (a *wgClientAdapter) Device(name string) (*wgtypes.Device, error) {
+	return a.client.Device(context.Background(), name)
+}
+
+func (a *wgClientAdapter) Close() error {
+	return a.client.Close()
+}
 
 type netlinkOps interface {
 	ParseAddr(string) (*netlink.Addr, error)
@@ -90,9 +100,13 @@ type Manager struct {
 }
 
 // NewManager creates a new WireGuard manager
-func NewManager(interfaceName string) (*Manager, error) { return newManager(interfaceName, "wireguard") }
+func NewManager(interfaceName string) (*Manager, error) {
+	return newManager(interfaceName, "wireguard")
+}
 
-func NewManagerWithType(interfaceName, linkType string) (*Manager, error) { return newManager(interfaceName, linkType) }
+func NewManagerWithType(interfaceName, linkType string) (*Manager, error) {
+	return newManager(interfaceName, linkType)
+}
 
 func newManager(interfaceName, linkType string) (*Manager, error) {
 	rawClient, err := wgctrl.New()
@@ -138,9 +152,13 @@ func buildInitialWGConfig(privateKey wgtypes.Key, listenPort int, peers []wgtype
 }
 
 // InitializeWithPeers sets up the standard WireGuard interface.
-func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig) error { return m.initializeWithPeers(privateKey, listenPort, serverIPs, peers, nil) }
+func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig) error {
+	return m.initializeWithPeers(privateKey, listenPort, serverIPs, peers, nil)
+}
 
-func (m *Manager) InitializeWithPeersAndConfig(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig, extra wgtypes.Config) error { return m.initializeWithPeers(privateKey, listenPort, serverIPs, peers, &extra) }
+func (m *Manager) InitializeWithPeersAndConfig(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig, extra wgtypes.Config) error {
+	return m.initializeWithPeers(privateKey, listenPort, serverIPs, peers, &extra)
+}
 
 func (m *Manager) initializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig, extra *wgtypes.Config) error {
 	m.mu.Lock()
@@ -169,7 +187,15 @@ func (m *Manager) initializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 
 	// Create WireGuard interface
 	var link netlink.Link
-	if m.linkType == "amneziawg" { link = &netlink.GenericLink{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}, LinkType: "amneziawg"} } else { link = &netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}} }
+	var link netlink.Link
+	if m.linkType == "amneziawg" {
+		link = &netlink.GenericLink{
+			LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName},
+			LinkType:  "amneziawg",
+		}
+	} else {
+		link = &netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}}
+	}
 	if err := nl.LinkAdd(link); err != nil {
 		return fmt.Errorf("failed to add link: %w", wrapPermissionDeniedError("creating wireguard interface", err))
 	}
