@@ -15,7 +15,7 @@ import (
 	"github.com/pasarguard/node/common"
 	nodeconfig "github.com/pasarguard/node/config"
 	"github.com/vishvananda/netlink"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 )
 
 func mustNewWireGuardConfigForLifecycle(t *testing.T, raw string) *Config {
