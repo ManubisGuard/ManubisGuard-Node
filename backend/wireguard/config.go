@@ -84,6 +84,7 @@ func NewConfig(config string) (*Config, error) {
 
 	if wgConfig.ListenPort <= 0 {
 		wgConfig.ListenPort = 51820
+		if wgConfig.AmneziaWG { wgConfig.ListenPort = 51821 }
 	}
 	if wgConfig.Latency == nil {
 		wgConfig.Latency = &LatencyConfig{}
@@ -94,6 +95,7 @@ func NewConfig(config string) (*Config, error) {
 	if wgConfig.Latency.TimeoutSeconds <= 0 {
 		wgConfig.Latency.TimeoutSeconds = 5
 	}
+	if err := wgConfig.ValidateAmnezia(); err != nil { return nil, fmt.Errorf("invalid AmneziaWG configuration: %w", err) }
 
 	return &wgConfig, nil
 }
