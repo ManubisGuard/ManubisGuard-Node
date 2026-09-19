@@ -305,11 +305,11 @@ func configureAWG2Endpoint(ns netns.NsHandle, vethName, awgName, localTransport,
 		return fmt.Errorf("ConfigureDevice(%s) peer endpoint: %w", awgName, err)
 	}
 
-	keepalive := cfg.Peers[0].PersistentKeepaliveInterval
+	keepalivePtr := cfg.Peers[0].PersistentKeepaliveInterval
 	if err := client.ConfigureDevice(context.Background(), awgName, wgtypes.Config{
 		Peers: []wgtypes.PeerConfig{{
 			PublicKey: cfg.Peers[0].PublicKey,
-			PersistentKeepaliveInterval: keepalive,
+			PersistentKeepaliveInterval: keepalivePtr,
 		}},
 	}); err != nil {
 		return fmt.Errorf("ConfigureDevice(%s) peer keepalive: %w", awgName, err)
