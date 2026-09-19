@@ -10,7 +10,7 @@ require (
 	github.com/shirou/gopsutil/v4 v4.26.7
 	github.com/vishvananda/netlink v1.3.1
 	github.com/xtls/xray-core v1.260327.0
-	github.com/advanced-wg/awgctrl-go v0.0.0-20260405190701-9052d07a8e00
+	github.com/awg-go/awgctrl-go v0.0.0-20260405190701-9052d07a8e00
 	golang.org/x/sys v0.47.0
 	google.golang.org/grpc v1.83.1
 	google.golang.org/protobuf v1.36.12
@@ -60,4 +60,3 @@ require (
 	gvisor.dev/gvisor v0.0.0-20260122175437-89a5d21be8f0 // indirect
 	lukechampine.com/blake3 v1.4.1 // indirect
 )
-replace github.com/advanced-wg/awgctrl-go => github.com/awg-go/awgctrl-go v0.0.0-20260821200017-c71c1641a470
