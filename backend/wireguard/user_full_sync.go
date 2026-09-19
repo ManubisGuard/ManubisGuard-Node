@@ -25,7 +25,7 @@ func (wg *WireGuard) syncUsersFull(users []*common.User) error {
 	}
 
 	psk, _ := wg.config.GetPreSharedKey()
-	peerConfigs, appliedKeys := buildTargetPeerConfigs(diff.TargetPeers, psk)
+	peerConfigs, appliedKeys := wg.buildTargetPeerConfigs(diff.TargetPeers, psk)
 
 	wg.mu.RLock()
 	if err := wg.ensureRunningWithManagerLocked(); err != nil {
