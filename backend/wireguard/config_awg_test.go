@@ -1,6 +1,11 @@
 package wireguard
 
-import "testing"
+import (
+	"net"
+	"testing"
+
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
+)
 
 func TestNewConfigAmneziaWGValidation(t *testing.T) {
 	cfg := `{
@@ -49,5 +54,35 @@ func TestNewConfigRejectsInvalidAmneziaWG(t *testing.T) {
 	}`
 	if _, err := NewConfig(cfg); err == nil {
 		t.Fatal("NewConfig() accepted invalid Jc=11")
+	}
+}
+
+
+func TestBuildAddConfigFromPeerInfoSetsAdvancedSecurityForAmneziaWG(t *testing.T) {
+	_, publicKey, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	key, err := wgtypes.ParseKey(publicKey)
+	if err != nil {
+		t.Fatalf("ParseKey() error = %v", err)
+	}
+	_, peerIP, err := net.ParseCIDR("10.0.0.2/32")
+	if err != nil {
+		t.Fatalf("ParseCIDR() error = %v", err)
+	}
+
+	wg := &WireGuard{config: &Config{AmneziaWG: true}}
+	cfg, err := wg.buildAddConfigFromPeerInfo(&PeerInfo{
+		Email: "awg@example.com", PublicKey: key, AllowedIPs: []net.IPNet{*peerIP},
+	}, nil)
+	if err != nil {
+		t.Fatalf("buildAddConfigFromPeerInfo() error = %v", err)
+	}
+	if !cfg.AdvancedSecurity {
+		t.Fatal("expected AdvancedSecurity=true for AmneziaWG")
+	}
+	if len(cfg.AllowedIPs) != 1 || cfg.AllowedIPs[0].String() != "10.0.0.2/32" {
+		t.Fatalf("unexpected AllowedIPs: %v", cfg.AllowedIPs)
 	}
 }
