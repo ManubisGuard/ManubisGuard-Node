@@ -76,13 +76,18 @@ func wrapPermissionDeniedError(action string, err error) error {
 type Manager struct {
 	client    wgClient
 	iFaceName string
+	linkType string
 	nl        netlinkOps
 	configure configureDeviceFunc
 	mu        sync.RWMutex
 }
 
 // NewManager creates a new WireGuard manager
-func NewManager(interfaceName string) (*Manager, error) {
+func NewManager(interfaceName string) (*Manager, error) { return newManager(interfaceName, "wireguard") }
+
+func NewManagerWithType(interfaceName, linkType string) (*Manager, error) { return newManager(interfaceName, linkType) }
+
+func newManager(interfaceName, linkType string) (*Manager, error) {
 	client, err := wgctrl.New()
 	if err != nil {
 		return nil, fmt.Errorf("failed to create wgctrl client: %w", err)
@@ -91,6 +96,7 @@ func NewManager(interfaceName string) (*Manager, error) {
 	return &Manager{
 		client:    client,
 		iFaceName: interfaceName,
+		linkType: linkType,
 		nl:        defaultNetlinkOps{},
 		configure: defaultConfigureDevice,
 	}, nil
@@ -124,8 +130,12 @@ func buildInitialWGConfig(privateKey wgtypes.Key, listenPort int, peers []wgtype
 	return config
 }
 
-// InitializeWithPeers sets up the WireGuard interface with initial configuration and optional full peer snapshot.
-func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig) error {
+// InitializeWithPeers sets up the standard WireGuard interface.
+func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig) error { return m.initializeWithPeers(privateKey, listenPort, serverIPs, peers, nil) }
+
+func (m *Manager) InitializeWithPeersAndConfig(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig, extra wgtypes.Config) error { return m.initializeWithPeers(privateKey, listenPort, serverIPs, peers, &extra) }
+
+func (m *Manager) initializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig, extra *wgtypes.Config) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -151,7 +161,8 @@ func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 	}
 
 	// Create WireGuard interface
-	link := &netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}}
+	var link netlink.Link
+	if m.linkType == "amneziawg" { link = &netlink.GenericLink{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}, LinkType: "amneziawg"} } else { link = &netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}} }
 	if err := nl.LinkAdd(link); err != nil {
 		return fmt.Errorf("failed to add link: %w", wrapPermissionDeniedError("creating wireguard interface", err))
 	}
@@ -164,6 +175,13 @@ func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 
 	// Configure WireGuard (single call for base settings + optional peers snapshot).
 	config := buildInitialWGConfig(privateKey, listenPort, peers)
+	if extra != nil {
+		config.Jc, config.Jmin, config.Jmax = extra.Jc, extra.Jmin, extra.Jmax
+		config.S1, config.S2, config.S3, config.S4 = extra.S1, extra.S2, extra.S3, extra.S4
+		config.H1, config.H2, config.H3, config.H4 = extra.H1, extra.H2, extra.H3, extra.H4
+		config.I1, config.I2, config.I3, config.I4, config.I5 = extra.I1, extra.I2, extra.I3, extra.I4, extra.I5
+		if err := config.Validate(); err != nil { return fmt.Errorf("invalid AmneziaWG configuration: %w", err) }
+	}
 
 	if err := configure(m.client, m.iFaceName, config); err != nil {
 		return fmt.Errorf("failed to configure device: %w", wrapPermissionDeniedError("configuring wireguard device", err))
