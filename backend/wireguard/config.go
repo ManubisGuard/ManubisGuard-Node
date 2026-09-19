@@ -19,7 +19,7 @@ type Config struct {
 	ListenPort    int            `json:"listen_port"`
 	Address       []string       `json:"address"`
 	Latency       *LatencyConfig `json:"latency,omitempty"`
-	AmneziaWG bool    `json:"amneziawg,omitempty"`
+	AmneziaWG      bool    `json:"amneziawg,omitempty"`
 	Jc         *int    `json:"jc,omitempty"`
 	Jmin       *int    `json:"jmin,omitempty"`
 	Jmax       *int    `json:"jmax,omitempty"`
