@@ -7,8 +7,8 @@ import (
 	"syscall"
 
 	"github.com/vishvananda/netlink"
-	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Advanced-WG/awgctrl-go"
+	"github.com/Advanced-WG/awgctrl-go/wgtypes"
 )
 
 type wgClient interface {
