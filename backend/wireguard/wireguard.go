@@ -14,7 +14,7 @@ import (
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/config"
 	"github.com/pasarguard/node/pkg/stats"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/Advanced-WG/awgctrl-go/wgtypes"
 )
 
 type newManagerFunc func(interfaceName string) (*Manager, error)
