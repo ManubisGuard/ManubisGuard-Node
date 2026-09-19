@@ -7,8 +7,8 @@ import (
 	"syscall"
 
 	"github.com/vishvananda/netlink"
-	"github.com/Advanced-WG/awgctrl-go"
-	"github.com/Advanced-WG/awgctrl-go/wgtypes"
+	"github.com/advanced-wg/awgctrl-go"
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 )
 
 type wgClient interface {
