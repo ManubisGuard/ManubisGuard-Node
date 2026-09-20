@@ -12,8 +12,14 @@ import (
 )
 
 var awgRunner = runAWG
+var awgOutputRunner = runAWGOutput
 
 func runAWG(args ...string) error {
+	_, err := runAWGOutput(args...)
+	return err
+}
+
+func runAWGOutput(args ...string) ([]byte, error) {
 	cmd := exec.Command("awg", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
@@ -218,8 +224,7 @@ func writeAWGKeyFile(key *wgtypes.Key) (string, error) {
 
 
 func replaceAWGPeers(interfaceName string, peers []wgtypes.PeerConfig) error {
-	cmd := exec.Command("awg", "showconf", interfaceName)
-	out, err := cmd.CombinedOutput()
+	out, err := awgOutputRunner("showconf", interfaceName)
 	if err != nil {
 		msg := strings.TrimSpace(string(out))
 		if msg != "" {
