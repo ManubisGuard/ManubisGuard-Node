@@ -277,6 +277,9 @@ func (m *Manager) ApplyPeersReplaceAll(peers []wgtypes.PeerConfig) error {
 		return fmt.Errorf("wgctrl client is not initialized")
 	}
 
+	if m.linkType == "amneziawg" {
+		return replaceAWGPeers(m.iFaceName, peers)
+	}
 	return m.client.ConfigureDevice(m.iFaceName, wgtypes.Config{
 		Peers:        peers,
 		ReplacePeers: true,
