@@ -3,6 +3,7 @@ package wireguard
 import (
 	"net"
 	"testing"
+	"time"
 
 	"github.com/awg-go/awgctrl-go/wgtypes"
 )
@@ -26,6 +27,21 @@ func TestBuildAddConfigDoesNotSendZeroPersistentKeepalive(t *testing.T) {
 	cfg := buildAddConfig(key, []net.IPNet{*peerIP}, nil)
 	if cfg.PersistentKeepaliveInterval != nil {
 		t.Fatalf("PersistentKeepaliveInterval = %v, want nil for zero keepalive", *cfg.PersistentKeepaliveInterval)
+	}
+}
+
+func TestBuildAddConfigPreservesNonZeroPersistentKeepalive(t *testing.T) {
+	old := tempKeepAlive
+	defer func() { tempKeepAlive = old }()
+
+	tempKeepAlive = 25 * time.Second
+
+	cfg := buildAddConfig(wgtypes.Key{}, nil, nil)
+	if cfg.PersistentKeepaliveInterval == nil {
+		t.Fatal("PersistentKeepaliveInterval = nil, want 25s")
+	}
+	if *cfg.PersistentKeepaliveInterval != 25*time.Second {
+		t.Fatalf("PersistentKeepaliveInterval = %v, want 25s", *cfg.PersistentKeepaliveInterval)
 	}
 }
 
