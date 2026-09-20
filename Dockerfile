@@ -18,8 +18,8 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make install_xray
 
 FROM alpine:latest AS awg-builder
 
-RUN apk add --no-cache git build-base
 ARG AWG_TOOLS_VERSION
+RUN apk add --no-cache git build-base
 RUN git clone --depth 1 --branch ${AWG_TOOLS_VERSION} https://github.com/amnezia-vpn/amneziawg-tools.git /src/amneziawg-tools \\
     && make -C /src/amneziawg-tools/src
 
