@@ -19,9 +19,15 @@ var (
 
 func buildAddConfig(publicKey wgtypes.Key, allowedIPs []net.IPNet, presharedKey *wgtypes.Key) wgtypes.PeerConfig {
 	config := wgtypes.PeerConfig{
-		PublicKey:                   publicKey,
-		AllowedIPs:                  allowedIPs,
-		PersistentKeepaliveInterval: keepAlive,
+		PublicKey:  publicKey,
+		AllowedIPs: allowedIPs,
+	}
+	// Do not emit a zero keepalive attribute. On AmneziaWG kernels with the
+	// AWG3 netlink policy mismatch, even a zero PersistentKeepalive attribute
+	// is rejected with EINVAL. Zero is already the kernel default for a new
+	// peer, so omitting the attribute preserves the intended configuration.
+	if keepAlive != nil && *keepAlive > 0 {
+		config.PersistentKeepaliveInterval = keepAlive
 	}
 	if presharedKey != nil {
 		config.PresharedKey = presharedKey
@@ -136,11 +142,6 @@ func (wg *WireGuard) buildSyncDiff(
 	}, nil
 }
 
-// buildTargetPeerConfigs converts targetPeers into WireGuard peer configs.
-// Peers that fail key/IP parsing are quarantined (logged and skipped).
-// Returns the config slice AND the set of public keys that were successfully
-// built, so callers can filter the peerStore upsert list accordingly — the
-// store must only contain peers that were actually committed to the kernel.
 func (wg *WireGuard) buildTargetPeerConfigs(targetPeers map[string]*PeerInfo, presharedKey *wgtypes.Key) ([]wgtypes.PeerConfig, map[string]struct{}) {
 	keys := make([]string, 0, len(targetPeers))
 	for key := range targetPeers {
@@ -163,12 +164,9 @@ func (wg *WireGuard) buildTargetPeerConfigs(targetPeers map[string]*PeerInfo, pr
 	return configs, appliedKeys
 }
 
-// filterUpsertsByAppliedKeys returns only the peers whose public key appears in appliedKeys.
-// This keeps the peerStore in sync with what was actually committed to the kernel;
-// quarantined peers (bad key or IP) are excluded from both.
 func filterUpsertsByAppliedKeys(upserts []*PeerInfo, appliedKeys map[string]struct{}) []*PeerInfo {
 	if len(appliedKeys) == len(upserts) {
-		return upserts // fast path: nobody was quarantined
+		return upserts
 	}
 	filtered := make([]*PeerInfo, 0, len(appliedKeys))
 	for _, p := range upserts {
@@ -267,13 +265,13 @@ func (wg *WireGuard) collectDesiredPeers(users []*common.User) (map[string]*Desi
 		}
 
 		if existing, exists := desiredPeers[publicKey]; exists && existing.Email != email {
-			return nil, fmt.Errorf("wireguard public key %s is assigned to multiple users: %s and %s", publicKey, existing.Email, email)
+			return nil, fmt.Errorf("wireguard public key %s is assigned to multiple users: %s and %s", publicKey, existing.Email, existing.Email)
 		}
 
 		desiredPeers[publicKey] = &DesiredPeer{
-			Email:         email,
-			PublicKey:     publicKey,
-			ParsedKey:     parsedKey,
+			Email: email,
+			PublicKey: publicKey,
+			ParsedKey: parsedKey,
 			AllowedIPNets: allowedIPNets,
 		}
 	}
@@ -328,6 +326,5 @@ func normalizeUsers(users []*common.User) []*common.User {
 	for _, user := range lastByEmail {
 		normalized = append(normalized, user)
 	}
-
 	return normalized
 }
