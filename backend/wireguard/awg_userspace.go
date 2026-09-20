@@ -7,10 +7,11 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/awg-go/awgctrl-go/wgtypes"
 )
+
+var awgRunner = runAWG
 
 func runAWG(args ...string) error {
 	cmd := exec.Command("awg", args...)
@@ -147,7 +148,7 @@ func configureAWGWithSetconf(interfaceName string, config wgtypes.Config) error 
 	}
 	defer os.Remove(path)
 
-	if err := runAWG("setconf", interfaceName, path); err != nil {
+	if err := awgRunner("setconf", interfaceName, path); err != nil {
 		return fmt.Errorf("configure AmneziaWG %s with awg setconf: %w", interfaceName, err)
 	}
 	return nil
@@ -184,7 +185,7 @@ func applyAWGPeers(interfaceName string, peers []wgtypes.PeerConfig) error {
 			args = append(args, "advanced-security", boolWord(peer.AdvancedSecurity))
 		}
 
-		if err := runAWG(args...); err != nil {
+		if err := awgRunner(args...); err != nil {
 			return fmt.Errorf("configure AmneziaWG peer %s: %w", peer.PublicKey.String(), err)
 		}
 	}
@@ -214,5 +215,3 @@ func writeAWGKeyFile(key *wgtypes.Key) (string, error) {
 	return path, nil
 }
 
-// Keep the compiler honest if the dependency changes its duration representation.
-var _ time.Duration
