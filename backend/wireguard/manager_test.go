@@ -2,6 +2,7 @@ package wireguard
 
 import (
 	"errors"
+	"os"
 	"net"
 	"strings"
 	"testing"
@@ -372,9 +373,17 @@ func TestManagerApplyPeersReplaceAllNilClient(t *testing.T) {
 func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *testing.T) {
 	var addedLink netlink.Link
 	var awgArgs []string
+	var configText string
 	oldRunner := awgRunner
 	awgRunner = func(args ...string) error {
 		awgArgs = append([]string(nil), args...)
+		if len(args) == 3 && args[0] == "setconf" {
+			data, err := os.ReadFile(args[2])
+			if err != nil {
+				t.Fatalf("read generated AWG config: %v", err)
+			}
+			configText = string(data)
+		}
 		return nil
 	}
 	defer func() { awgRunner = oldRunner }()
@@ -426,11 +435,6 @@ func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *te
 	if len(awgArgs) != 3 || awgArgs[0] != "setconf" || awgArgs[1] != "awg-test" {
 		t.Fatalf("unexpected awg invocation: %v", awgArgs)
 	}
-	data, err := os.ReadFile(awgArgs[2])
-	if err != nil {
-		t.Fatalf("read generated AWG config: %v", err)
-	}
-	configText := string(data)
 	for _, want := range []string{
 		"Jc = 3", "Jmin = 64", "Jmax = 128",
 		"S1 = 16", "S4 = 4",
