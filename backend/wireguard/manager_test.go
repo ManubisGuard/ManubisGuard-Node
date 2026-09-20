@@ -371,7 +371,14 @@ func TestManagerApplyPeersReplaceAllNilClient(t *testing.T) {
 
 func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *testing.T) {
 	var addedLink netlink.Link
-	var configured wgtypes.Config
+	var awgArgs []string
+	oldRunner := awgRunner
+	awgRunner = func(args ...string) error {
+		awgArgs = append([]string(nil), args...)
+		return nil
+	}
+	defer func() { awgRunner = oldRunner }()
+
 	mock := mockNetlinkOps{
 		parseAddrFn: func(_ string) (*netlink.Addr, error) { return &netlink.Addr{}, nil },
 		linkAddFn: func(link netlink.Link) error {
@@ -391,10 +398,7 @@ func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *te
 		linkType: "amneziawg",
 		client: &fakeWGClient{},
 		nl: mock,
-		configure: func(_ wgClient, _ string, cfg wgtypes.Config) error {
-			configured = cfg
-			return nil
-		},
+		configure: defaultConfigureDevice,
 	}
 
 	jc, jmin, jmax := 3, 64, 128
@@ -419,13 +423,22 @@ func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *te
 	if generic.LinkType != "amneziawg" {
 		t.Fatalf("link type = %q, want amneziawg", generic.LinkType)
 	}
-	if configured.Jc == nil || *configured.Jc != jc ||
-		configured.Jmin == nil || *configured.Jmin != jmin ||
-		configured.Jmax == nil || *configured.Jmax != jmax ||
-		configured.S1 == nil || *configured.S1 != s1 ||
-		configured.S4 == nil || *configured.S4 != s4 ||
-		configured.H1 == nil || *configured.H1 != h1 ||
-		configured.I5 == nil || *configured.I5 != i5 {
-		t.Fatalf("AWG configuration was not propagated: %+v", configured)
+	if len(awgArgs) != 3 || awgArgs[0] != "setconf" || awgArgs[1] != "awg-test" {
+		t.Fatalf("unexpected awg invocation: %v", awgArgs)
+	}
+	data, err := os.ReadFile(awgArgs[2])
+	if err != nil {
+		t.Fatalf("read generated AWG config: %v", err)
+	}
+	configText := string(data)
+	for _, want := range []string{
+		"Jc = 3", "Jmin = 64", "Jmax = 128",
+		"S1 = 16", "S4 = 4",
+		"H1 = 123456-123999", "H4 = 423456-423999",
+		"I1 = <r 16>", "I5 = <r 12>",
+	} {
+		if !strings.Contains(configText, want) {
+			t.Fatalf("generated AWG config missing %q:\n%s", want, configText)
+		}
 	}
 }
