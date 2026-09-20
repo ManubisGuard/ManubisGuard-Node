@@ -1,3 +1,5 @@
+ARG AWG_TOOLS_VERSION=v3.1.20260812
+
 FROM --platform=$BUILDPLATFORM golang:1.26.3-alpine AS builder
 
 ARG TARGETOS
@@ -14,11 +16,19 @@ COPY . .
 RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} make NAME=main build
 RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make install_xray
 
+FROM alpine:latest AS awg-builder
+
+RUN apk add --no-cache git build-base
+ARG AWG_TOOLS_VERSION
+RUN git clone --depth 1 --branch ${AWG_TOOLS_VERSION} https://github.com/amnezia-vpn/amneziawg-tools.git /src/amneziawg-tools \\
+    && make -C /src/amneziawg-tools/src
+
 FROM alpine:latest
 
 LABEL org.opencontainers.image.source="https://github.com/PasarGuard/node"
 
 RUN apk update && apk add --no-cache wireguard-tools nftables iproute2 procps
+COPY --from=awg-builder /src/amneziawg-tools/src/awg /usr/bin/awg
 
 WORKDIR /app
 COPY --from=builder /src/main /app/main
