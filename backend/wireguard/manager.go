@@ -215,7 +215,13 @@ func (m *Manager) initializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 		if err := config.Validate(); err != nil { return fmt.Errorf("invalid AmneziaWG configuration: %w", err) }
 	}
 
-	if err := configure(m.client, m.iFaceName, config); err != nil {
+	var configureErr error
+	if m.linkType == "amneziawg" {
+		configureErr = configureAWGWithSetconf(m.iFaceName, config)
+	} else {
+		configureErr = configure(m.client, m.iFaceName, config)
+	}
+	if err := configureErr; err != nil {
 		return fmt.Errorf("failed to configure device: %w", wrapPermissionDeniedError("configuring wireguard device", err))
 	}
 
@@ -256,6 +262,9 @@ func (m *Manager) ApplyPeers(peers []wgtypes.PeerConfig) error {
 		return fmt.Errorf("wgctrl client is not initialized")
 	}
 
+	if m.linkType == "amneziawg" {
+		return applyAWGPeers(m.iFaceName, peers)
+	}
 	return m.client.ConfigureDevice(m.iFaceName, wgtypes.Config{Peers: peers})
 }
 
@@ -283,6 +292,9 @@ func (m *Manager) ApplyConfig(config wgtypes.Config) error {
 		return fmt.Errorf("wgctrl client is not initialized")
 	}
 
+	if m.linkType == "amneziawg" {
+		return configureAWGWithSetconf(m.iFaceName, config)
+	}
 	configure := m.getConfigureDevice()
 	return configure(m.client, m.iFaceName, config)
 }
