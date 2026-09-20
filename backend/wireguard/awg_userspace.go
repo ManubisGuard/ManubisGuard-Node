@@ -166,7 +166,7 @@ func applyAWGPeers(interfaceName string, peers []wgtypes.PeerConfig) error {
 				if err != nil {
 					return err
 				}
-				err = runAWG(append(args, "preshared-key", keyPath)...)
+				err = awgRunner(append(args, "preshared-key", keyPath)...)
 				_ = os.Remove(keyPath)
 				if err != nil {
 					return fmt.Errorf("configure AmneziaWG peer %s: %w", peer.PublicKey.String(), err)
@@ -215,3 +215,49 @@ func writeAWGKeyFile(key *wgtypes.Key) (string, error) {
 	return path, nil
 }
 
+
+
+func replaceAWGPeers(interfaceName string, peers []wgtypes.PeerConfig) error {
+	cmd := exec.Command("awg", "showconf", interfaceName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		msg := strings.TrimSpace(string(out))
+		if msg != "" {
+			return fmt.Errorf("awg showconf %s: %w: %s", interfaceName, err, msg)
+		}
+		return fmt.Errorf("awg showconf %s: %w", interfaceName, err)
+	}
+
+	current := string(out)
+	if idx := strings.Index(current, "[Peer]"); idx >= 0 {
+		current = current[:idx]
+	}
+	var b strings.Builder
+	b.WriteString(strings.TrimRight(current, "\n"))
+	b.WriteString("\n")
+	for _, peer := range peers {
+		writeAWGPeer(&b, peer)
+	}
+
+	f, err := os.CreateTemp("", "pasarguard-awg-replace-*.conf")
+	if err != nil {
+		return fmt.Errorf("create AWG replacement config: %w", err)
+	}
+	path := f.Name()
+	defer os.Remove(path)
+	if err := f.Chmod(0600); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("chmod AWG replacement config: %w", err)
+	}
+	if _, err := f.WriteString(b.String()); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("write AWG replacement config: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("close AWG replacement config: %w", err)
+	}
+	if err := awgRunner("setconf", interfaceName, path); err != nil {
+		return fmt.Errorf("replace AmneziaWG peers on %s: %w", interfaceName, err)
+	}
+	return nil
+}
