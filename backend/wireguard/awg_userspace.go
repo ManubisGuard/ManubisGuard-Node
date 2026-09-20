@@ -25,11 +25,11 @@ func runAWGOutput(args ...string) ([]byte, error) {
 	if err != nil {
 		msg := strings.TrimSpace(string(out))
 		if msg != "" {
-			return fmt.Errorf("awg %s: %w: %s", strings.Join(args, " "), err, msg)
+			return out, fmt.Errorf("awg %s: %w: %s", strings.Join(args, " "), err, msg)
 		}
-		return fmt.Errorf("awg %s: %w", strings.Join(args, " "), err)
+		return out, fmt.Errorf("awg %s: %w", strings.Join(args, " "), err)
 	}
-	return nil
+	return out, nil
 }
 
 func writeAWGConfig(config wgtypes.Config) (string, error) {
