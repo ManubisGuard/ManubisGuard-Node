@@ -860,11 +860,8 @@ func TestUpdateUsersAndRestartReappliesKeepaliveToAllPeers(t *testing.T) {
 	keys := map[string]wgtypes.PeerConfig{}
 	for _, peer := range restartConfig.Peers {
 		keys[peer.PublicKey.String()] = peer
-		if peer.PersistentKeepaliveInterval == nil {
-			t.Fatal("expected persistent keepalive interval to be set explicitly")
-		}
-		if *peer.PersistentKeepaliveInterval != 0 {
-			t.Fatalf("expected keepalive 0, got %v", *peer.PersistentKeepaliveInterval)
+		if peer.PersistentKeepaliveInterval != nil {
+			t.Fatalf("expected zero keepalive to be omitted, got %v", *peer.PersistentKeepaliveInterval)
 		}
 	}
 
