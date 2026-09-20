@@ -446,3 +446,55 @@ func TestManagerInitializeAmneziaWGCreatesAmneziaLinkAndConfiguresSecurity(t *te
 		}
 	}
 }
+
+
+func TestReplaceAWGPeersUsesOutputRunner(t *testing.T) {
+	_, publicKey, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("GenerateKeyPair() error = %v", err)
+	}
+	key, err := wgtypes.ParseKey(publicKey)
+	if err != nil {
+		t.Fatalf("ParseKey() error = %v", err)
+	}
+
+	oldOutputRunner := awgOutputRunner
+	oldRunner := awgRunner
+	defer func() {
+		awgOutputRunner = oldOutputRunner
+		awgRunner = oldRunner
+	}()
+
+	var setconfPath string
+	awgOutputRunner = func(args ...string) ([]byte, error) {
+		if len(args) != 2 || args[0] != "showconf" || args[1] != "awg-test" {
+			t.Fatalf("unexpected showconf args: %v", args)
+		}
+		return []byte("[Interface]\nListenPort = 51820\n"), nil
+	}
+	awgRunner = func(args ...string) error {
+		if len(args) != 3 || args[0] != "setconf" || args[1] != "awg-test" {
+			t.Fatalf("unexpected setconf args: %v", args)
+		}
+		setconfPath = args[2]
+		data, err := os.ReadFile(setconfPath)
+		if err != nil {
+			return err
+		}
+		text := string(data)
+		if !strings.Contains(text, "[Interface]") || !strings.Contains(text, "ListenPort = 51820") {
+			t.Fatalf("replacement config missing interface settings: %s", text)
+		}
+		if !strings.Contains(text, "PublicKey = "+key.String()) {
+			t.Fatalf("replacement config missing peer: %s", text)
+		}
+		return nil
+	}
+
+	if err := replaceAWGPeers("awg-test", []wgtypes.PeerConfig{{PublicKey: key}}); err != nil {
+		t.Fatalf("replaceAWGPeers() error = %v", err)
+	}
+	if setconfPath == "" {
+		t.Fatal("expected setconf to be invoked")
+	}
+}
