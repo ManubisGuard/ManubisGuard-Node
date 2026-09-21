@@ -42,7 +42,7 @@ func TestParseAWGDeviceDump(t *testing.T) {
 	if peer.ReceiveBytes != 1234 || peer.TransmitBytes != 5678 {
 		t.Fatalf("unexpected transfer counters: rx=%d tx=%d", peer.ReceiveBytes, peer.TransmitBytes)
 	}
-	if peer.PersistentKeepaliveInterval == nil || *peer.PersistentKeepaliveInterval != 25*time.Second {
+	if peer.PersistentKeepaliveInterval != 25*time.Second {
 		t.Fatalf("unexpected keepalive: %v", peer.PersistentKeepaliveInterval)
 	}
 }
