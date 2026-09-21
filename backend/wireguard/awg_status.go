@@ -142,8 +142,7 @@ func parseAWGPeerDump(line string) (wgtypes.Peer, error) {
 		if err != nil {
 			return wgtypes.Peer{}, fmt.Errorf("invalid AWG persistent keepalive %q: %w", fields[7], err)
 		}
-		d := time.Duration(seconds) * time.Second
-		peer.PersistentKeepaliveInterval = &d
+		peer.PersistentKeepaliveInterval = time.Duration(seconds) * time.Second
 	}
 
 	return peer, nil
