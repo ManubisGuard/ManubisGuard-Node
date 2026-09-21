@@ -311,6 +311,10 @@ func (m *Manager) GetDevice() (*wgtypes.Device, error) {
 		return nil, fmt.Errorf("wgctrl client is not initialized")
 	}
 
+	if m.linkType == "amneziawg" {
+		return readAWGDevice(m.iFaceName)
+	}
+
 	return m.client.Device(m.iFaceName)
 }
 
