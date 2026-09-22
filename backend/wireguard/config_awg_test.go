@@ -86,3 +86,48 @@ func TestBuildAddConfigFromPeerInfoSetsAdvancedSecurityForAmneziaWG(t *testing.T
 		t.Fatalf("unexpected AllowedIPs: %v", cfg.AllowedIPs)
 	}
 }
+
+
+func TestNewConfigAcceptsNovaAWG2JunkRange(t *testing.T) {
+	cfg := `{
+		"interface_name":"awg0",
+		"private_key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+		"listen_port":51820,
+		"address":["10.0.0.1/24"],
+		"amneziawg":true,
+		"jc":3,
+		"jmin":20,
+		"jmax":50,
+		"s1":15,
+		"s2":64,
+		"s3":25,
+		"s4":8,
+		"h1":"1851500115",
+		"h2":"163827579",
+		"h3":"775454101",
+		"h4":"1260834266"
+	}`
+	got, err := NewConfig(cfg)
+	if err != nil {
+		t.Fatalf("NewConfig() rejected Nova AWG2.x profile: %v", err)
+	}
+	if got.Jmin == nil || *got.Jmin != 20 || got.Jmax == nil || *got.Jmax != 50 {
+		t.Fatalf("unexpected Jmin/Jmax: %v/%v", got.Jmin, got.Jmax)
+	}
+}
+
+func TestNewConfigRejectsReversedJunkRange(t *testing.T) {
+	cfg := `{
+		"interface_name":"awg0",
+		"private_key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
+		"listen_port":51820,
+		"address":["10.0.0.1/24"],
+		"amneziawg":true,
+		"jc":3,
+		"jmin":50,
+		"jmax":20
+	}`
+	if _, err := NewConfig(cfg); err == nil {
+		t.Fatal("NewConfig() accepted Jmin > Jmax")
+	}
+}
