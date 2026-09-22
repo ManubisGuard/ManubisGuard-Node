@@ -8,7 +8,7 @@ import (
 	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
-func TestBuildAddConfigDoesNotSendZeroPersistentKeepalive(t *testing.T) {
+func TestBuildAddConfigUsesProductionPersistentKeepalive(t *testing.T) {
 	_, publicKey, err := GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("GenerateKeyPair() error = %v", err)
@@ -25,8 +25,11 @@ func TestBuildAddConfigDoesNotSendZeroPersistentKeepalive(t *testing.T) {
 	}
 
 	cfg := buildAddConfig(key, []net.IPNet{*peerIP}, nil)
-	if cfg.PersistentKeepaliveInterval != nil {
-		t.Fatalf("PersistentKeepaliveInterval = %v, want nil for zero keepalive", *cfg.PersistentKeepaliveInterval)
+	if cfg.PersistentKeepaliveInterval == nil {
+		t.Fatal("PersistentKeepaliveInterval = nil, want 25s")
+	}
+	if *cfg.PersistentKeepaliveInterval != 25*time.Second {
+		t.Fatalf("PersistentKeepaliveInterval = %v, want 25s", *cfg.PersistentKeepaliveInterval)
 	}
 }
 
