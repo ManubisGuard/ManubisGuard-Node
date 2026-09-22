@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	tempKeepAlive = time.Duration(0)
+	tempKeepAlive = 25 * time.Second
 	keepAlive     = &tempKeepAlive
 )
 
@@ -22,10 +22,8 @@ func buildAddConfig(publicKey wgtypes.Key, allowedIPs []net.IPNet, presharedKey 
 		PublicKey:  publicKey,
 		AllowedIPs: allowedIPs,
 	}
-	// Do not emit a zero keepalive attribute. On AmneziaWG kernels with the
-	// AWG3 netlink policy mismatch, even a zero PersistentKeepalive attribute
-	// is rejected with EINVAL. Zero is already the kernel default for a new
-	// peer, so omitting the attribute preserves the intended configuration.
+	// Keep the production client profile at PersistentKeepalive=25. When a caller
+	// explicitly uses zero, omit the attribute so the kernel default remains unchanged.
 	if keepAlive != nil && *keepAlive > 0 {
 		config.PersistentKeepaliveInterval = keepAlive
 	}
