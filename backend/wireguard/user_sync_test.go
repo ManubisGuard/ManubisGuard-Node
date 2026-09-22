@@ -1,6 +1,7 @@
 package wireguard
 
 import (
+	"time"
 	"context"
 	"net"
 	"strings"
