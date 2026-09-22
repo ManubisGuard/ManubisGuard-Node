@@ -48,7 +48,7 @@ func TestBuildAddConfigPreservesNonZeroPersistentKeepalive(t *testing.T) {
 	}
 }
 
-func TestAmneziaWGPeerConfigDoesNotSendZeroPersistentKeepalive(t *testing.T) {
+func TestAmneziaWGPeerConfigOmitsExplicitZeroPersistentKeepalive(t *testing.T) {
 	_, publicKey, err := GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("GenerateKeyPair() error = %v", err)
@@ -63,6 +63,10 @@ func TestAmneziaWGPeerConfigDoesNotSendZeroPersistentKeepalive(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ParseCIDR() error = %v", err)
 	}
+
+	oldKeepAlive := tempKeepAlive
+	defer func() { tempKeepAlive = oldKeepAlive }()
+	tempKeepAlive = 0
 
 	wg := &WireGuard{config: &Config{AmneziaWG: true}}
 	cfg, err := wg.buildAddConfigFromPeerInfo(&PeerInfo{
