@@ -114,8 +114,33 @@ func (c *Config) ValidateAmnezia() error {
 	if !c.AmneziaWG {
 		return nil
 	}
-	cfg := c.AmneziaConfig()
-	return cfg.Validate()
+	// Keep AWG2.x validation local. awgctrl-go currently rejects Jmin/Jmax
+	// below 64, while valid AWG2.x profiles may use values such as 20..50.
+	if c.Jc != nil && (*c.Jc < 0 || *c.Jc > 10) {
+		return fmt.Errorf("Jc must be 0-10, got %d", *c.Jc)
+	}
+	if c.Jmin != nil && *c.Jmin < 0 {
+		return fmt.Errorf("Jmin must be non-negative, got %d", *c.Jmin)
+	}
+	if c.Jmax != nil && *c.Jmax < 0 {
+		return fmt.Errorf("Jmax must be non-negative, got %d", *c.Jmax)
+	}
+	if c.Jmin != nil && c.Jmax != nil && *c.Jmin > *c.Jmax {
+		return fmt.Errorf("Jmin (%d) must be <= Jmax (%d)", *c.Jmin, *c.Jmax)
+	}
+	if c.S1 != nil && (*c.S1 < 0 || *c.S1 > 64) {
+		return fmt.Errorf("S1 must be 0-64, got %d", *c.S1)
+	}
+	if c.S2 != nil && (*c.S2 < 0 || *c.S2 > 64) {
+		return fmt.Errorf("S2 must be 0-64, got %d", *c.S2)
+	}
+	if c.S3 != nil && (*c.S3 < 0 || *c.S3 > 64) {
+		return fmt.Errorf("S3 must be 0-64, got %d", *c.S3)
+	}
+	if c.S4 != nil && (*c.S4 < 0 || *c.S4 > 32) {
+		return fmt.Errorf("S4 must be 0-32, got %d", *c.S4)
+	}
+	return nil
 }
 
 // InterfaceNetworks returns CIDR prefixes parsed from the node's core `address` list.
