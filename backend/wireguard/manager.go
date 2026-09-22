@@ -212,7 +212,6 @@ func (m *Manager) initializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 		config.S1, config.S2, config.S3, config.S4 = extra.S1, extra.S2, extra.S3, extra.S4
 		config.H1, config.H2, config.H3, config.H4 = extra.H1, extra.H2, extra.H3, extra.H4
 		config.I1, config.I2, config.I3, config.I4, config.I5 = extra.I1, extra.I2, extra.I3, extra.I4, extra.I5
-		if err := config.Validate(); err != nil { return fmt.Errorf("invalid AmneziaWG configuration: %w", err) }
 	}
 
 	var configureErr error
