@@ -7,7 +7,7 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/manubisguard-node}"
 DATA_DIR="${DATA_DIR:-/var/lib/pg-node}"
 COMPOSE_FILE="$INSTALL_DIR/docker-compose.yml"
 CONTAINER_NAME="manubisguard-node"
-IMAGE_NAME="manubisguard-node:feature-amnezia-wg"
+IMAGE_NAME="ghcr.io/arsamnikzaad/manubisguard-node:feature-amnezia-wg"
 SERVICE_PORT="${SERVICE_PORT:-62050}"
 
 log(){ echo "[ManubisGuard Node] $*"; }
@@ -100,9 +100,10 @@ EOF
 
 install_node(){
   docker compose -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
-  log "Building ManubisGuard Node from $REPO_BRANCH..."
+  log "Starting ManubisGuard Node from prebuilt image..."
   if ! docker pull "ghcr.io/arsamnikzaad/manubisguard-node:feature-amnezia-wg"; then
     log "Prebuilt image unavailable; building locally from the Fork..."
+    log "Building ManubisGuard Node locally from the Fork..."
     docker compose -f "$COMPOSE_FILE" build --pull node
   fi
   docker compose -f "$COMPOSE_FILE" up -d node
