@@ -1,6 +1,8 @@
 services:
   node:
-    image: pasarguard/node:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     # for situations, you don't have access to docker hub use 👇
     # image: ghcr.io/pasarguard/node:latest
     restart: always
