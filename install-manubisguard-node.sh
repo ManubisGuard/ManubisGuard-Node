@@ -78,10 +78,7 @@ write_compose(){
   cat > "$COMPOSE_FILE" <<EOF
 services:
   node:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: $IMAGE_NAME
+    image: ghcr.io/arsamnikzaad/manubisguard-node:feature-amnezia-wg
     container_name: $CONTAINER_NAME
     restart: always
     network_mode: host
@@ -104,7 +101,10 @@ EOF
 install_node(){
   docker compose -f "$COMPOSE_FILE" down --remove-orphans >/dev/null 2>&1 || true
   log "Building ManubisGuard Node from $REPO_BRANCH..."
-  docker compose -f "$COMPOSE_FILE" build --pull node
+  if ! docker pull "ghcr.io/arsamnikzaad/manubisguard-node:feature-amnezia-wg"; then
+    log "Prebuilt image unavailable; building locally from the Fork..."
+    docker compose -f "$COMPOSE_FILE" build --pull node
+  fi
   docker compose -f "$COMPOSE_FILE" up -d node
   sleep 5
   docker compose -f "$COMPOSE_FILE" ps
