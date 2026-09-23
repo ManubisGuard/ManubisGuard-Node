@@ -6,6 +6,7 @@ services:
     # for situations, you don't have access to docker hub use 👇
     # image: ghcr.io/pasarguard/node:latest
     restart: always
+    env_file: .env
     network_mode: host
     cap_add:
       - NET_ADMIN
