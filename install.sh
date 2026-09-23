@@ -10,15 +10,13 @@ DATA_DIR="/var/lib/pg-node"
 
 if command -v apt-get >/dev/null 2>&1; then
   apt-get update
-  DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates openssl wireguard-tools
+  DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates openssl wireguard-tools python3 docker.io docker-compose-plugin
 else
   echo "ERROR: this installer currently requires Debian/Ubuntu (apt-get)."
   exit 1
 fi
 
-if ! command -v docker >/dev/null 2>&1; then
-  curl -fsSL https://get.docker.com | sh
-fi
+
 
 modprobe wireguard 2>/dev/null || true
 mkdir -p "$DATA_DIR/certs" "$DATA_DIR/generated"
