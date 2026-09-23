@@ -19,7 +19,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make install_xray
 FROM alpine:latest AS awg-builder
 
 ARG AWG_TOOLS_VERSION
-RUN apk add --no-cache git build-base linux-headers
+RUN apk add --no-cache git build-base linux-headers linux-headers
 RUN git clone --depth 1 --branch ${AWG_TOOLS_VERSION} https://github.com/amnezia-vpn/amneziawg-tools.git /src/amneziawg-tools && make -C /src/amneziawg-tools/src
 
 FROM alpine:latest
@@ -27,7 +27,7 @@ FROM alpine:latest
 LABEL org.opencontainers.image.source="https://github.com/PasarGuard/node"
 
 RUN apk update && apk add --no-cache wireguard-tools nftables iproute2 procps
-COPY --from=awg-builder /src/amneziawg-tools/src/awg /usr/bin/awg
+COPY --from=awg-builder /src/amneziawg-tools/src/wg /usr/bin/awg
 
 WORKDIR /app
 COPY --from=builder /src/main /app/main
