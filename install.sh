@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="https://github.com/arsamnikzaad/Pasarguard-node-AWG.git"
-BRANCH="${PASARGUARD_NODE_BRANCH:-main}"
-INSTALL_DIR="${PASARGUARD_NODE_DIR:-/opt/pasarguard-node-awg}"
+REPO="${MANUBISGUARD_NODE_REPO:-https://github.com/ManubisGuard/ManubisGuard-Node.git}"
+BRANCH="${MANUBISGUARD_NODE_BRANCH:-main}"
+INSTALL_DIR="${MANUBISGUARD_NODE_DIR:-/opt/manubisguard-node}"
 DATA_DIR="/var/lib/pg-node"
 
 [[ "$EUID" -eq 0 ]] || { echo "ERROR: run as root"; exit 1; }
