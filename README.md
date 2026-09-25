@@ -1,49 +1,106 @@
 # ManubisGuard Node
 <p align="center">
-    <a href="#">
-        <img src="https://img.shields.io/github/actions/workflow/status/PasarGuard/node/docker-build.yml?style=flat-square" />
+    <a href="https://github.com/ManubisGuard/ManubisGuard-Node/actions">
+        <img src="https://img.shields.io/github/actions/workflow/status/ManubisGuard/ManubisGuard-Node/docker-build.yml?style=flat-square" />
     </a>
-    <a href="https://hub.docker.com/r/pasarguard/node" target="_blank">
-        <img src="https://img.shields.io/docker/pulls/pasarguard/node?style=flat-square&logo=docker" />
-    </a>
-    <a href="#">
-        <img src="https://img.shields.io/github/license/PasarGuard/node?style=flat-square" />
-    </a>
-    <a href="#">
-        <img src="https://img.shields.io/github/stars/PasarGuard/node?style=social" />
+    <a href="https://github.com/ManubisGuard/ManubisGuard-Node">
+        <img src="https://img.shields.io/github/license/ManubisGuard/ManubisGuard-Node?style=flat-square" />
     </a>
 </p>
 
 # Documentation
-You can find a full guide in docs https://docs.pasarguard.org/en/node/
+ManubisGuard Node is the worker node used by ManubisGuard Panel.
 
-# One-Click Installation (Recommended)
-The easiest way to install PasarGuard Node is using our automated installation script:
+## One-Click Installation
+
+The installer follows the current PasarGuard Node installation flow, adapted for the ManubisGuard fork. It validates the host, prepares Docker safely, asks for node/TLS/protocol/port settings, builds the node, installs the systemd service, and validates the selected service port. The interactive prompts are read from the controlling terminal so the command also works with `curl | sudo bash`.
 
 ```bash
-sudo bash -c "$(curl -sL https://github.com/PasarGuard/scripts/raw/main/pg-node.sh)" @ install
+curl -fsSL https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/main/install.sh | sudo bash -s -- install
 ```
 
-# Donation
-You can help PasarGuard team with your donations, [Click Here](https://donate.pasarguard.org/)
+### Interactive choices
 
-# Contributors
+During a normal install you can choose:
 
-We ❤️‍🔥 contributors! If you'd like to contribute, please check out our [Contributing Guidelines](CONTRIBUTING.md) and feel free to submit a pull request or open an issue. We also welcome you to join our [Telegram](https://t.me/Pasar_Guard) group for either support or contributing guidance.
+- Node name
+- Self-signed TLS certificate or your own public certificate/key
+- Additional certificate SAN entries
+- API key or automatic UUID generation
+- REST or gRPC protocol
+- `SERVICE_PORT`, default `62050`
+- `API_PORT`, default `62051`
+- systemd service startup
 
-Check [open issues](https://github.com/PasarGuard/node/issues) to help the progress of this project.
+The installer checks that selected ports are free before deployment.
 
-## Stargazers over time
-[![Stargazers over time](https://starchart.cc/PasarGuard/node.svg?variant=adaptive)](https://starchart.cc/PasarGuard/node)
-                    
-<p align="center">
-Thanks to the all contributors who have helped improve PasarGuard Node:
-</p>
-<p align="center">
-<a href="https://github.com/ManubisGuard/ManubisGuard-Node/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=ManubisGuard/ManubisGuard-Node" />
-</a>
-</p>
-<p align="center">
-  Made with <a rel="noopener noreferrer" target="_blank" href="https://contrib.rocks">contrib.rocks</a>
-</p>
+### Unattended installation
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/main/install.sh | sudo bash -s -- install \
+  --name node-de1 \
+  --service-port 62050 \
+  --api-port 62051 \
+  --use-grpc \
+  --self-signed \
+  --yes
+```
+
+For a public certificate:
+
+```bash
+sudo bash install.sh install \
+  --cert-path /path/to/cert.pem \
+  --key-path /path/to/key.pem \
+  --service-port 62050 \
+  --api-port 62051
+```
+
+### Runtime files
+
+- Source: `/opt/manubisguard-node`
+- Environment: `/opt/manubisguard-node/.env`
+- Data: `/var/lib/pg-node`
+- Certificate: `/var/lib/pg-node/certs/ssl_cert.pem`
+- Private key: `/var/lib/pg-node/certs/ssl_key.pem`
+- Compose: `/opt/manubisguard-node/docker-compose.yml`
+
+The installer generates a self-signed certificate by default in interactive mode unless you select a public certificate. The certificate includes localhost, loopback, the detected public IP, and any additional SAN entries you provide.
+
+## CLI
+
+After installation, the node name is installed as a global command. With the default name:
+
+```bash
+sudo pg-node status
+sudo pg-node restart
+sudo pg-node logs
+sudo pg-node
+```
+
+The systemd unit is:
+
+```bash
+sudo systemctl status pg-node-service
+sudo systemctl restart pg-node-service
+```
+
+## Docker installation safety
+
+The installer does not blindly install Ubuntu's `docker.io` package alongside Docker's `containerd.io`. If Docker/Compose is missing, it configures the official Docker repository and installs Docker CE plus the Compose plugin. This avoids the `containerd.io : Conflicts: containerd` failure caused by mixing the two package families.
+
+## Source and customization
+
+Environment overrides:
+
+```bash
+MANUBISGUARD_NODE_REPO=https://github.com/ManubisGuard/ManubisGuard-Node.git
+MANUBISGUARD_NODE_BRANCH=main
+MANUBISGUARD_NODE_NAME=pg-node
+MANUBISGUARD_NODE_DIR=/opt/manubisguard-node
+MANUBISGUARD_NODE_DATA_DIR=/var/lib/pg-node
+```
+
+## Upstream compatibility
+
+The installation flow is intentionally aligned with the PasarGuard Node installer: system validation, Docker preparation, TLS/SAN handling, API key, REST/gRPC choice, occupied-port checks, node deployment, service installation, and final certificate/API-key output. The source and runtime identity point to ManubisGuard rather than the upstream PasarGuard repository. PasarGuard's current installer documents the same service/API port selection and certificate/API-key handoff flow. citeturn6view0turn3view1
