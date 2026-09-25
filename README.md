@@ -1,4 +1,4 @@
-# PasarGuard-Node
+# ManubisGuard Node
 <p align="center">
     <a href="#">
         <img src="https://img.shields.io/github/actions/workflow/status/PasarGuard/node/docker-build.yml?style=flat-square" />
@@ -40,8 +40,8 @@ Check [open issues](https://github.com/PasarGuard/node/issues) to help the progr
 Thanks to the all contributors who have helped improve PasarGuard Node:
 </p>
 <p align="center">
-<a href="https://github.com/PasarGuard/node/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=PasarGuard/node" />
+<a href="https://github.com/ManubisGuard/ManubisGuard-Node/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=ManubisGuard/ManubisGuard-Node" />
 </a>
 </p>
 <p align="center">
