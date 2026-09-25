@@ -29,11 +29,11 @@ NODE_IP=""
 log(){ printf '[manubisguard-node] %s\n' "$*"; }
 die(){ printf '[manubisguard-node] ERROR: %s\n' "$*" >&2; exit 1; }
 tty_prompt(){
-  local __v="$1" prompt="$2" default="${3:-}" answer
+  local __v="$1" prompt="$2" default="${3:-}" input
   printf '%s' "$prompt" >/dev/tty
-  IFS= read -r answer </dev/tty || die "could not read input from terminal"
-  [[ -z "$answer" ]] && answer="$default"
-  printf -v "$__v" '%s' "$answer"
+  IFS= read -r input </dev/tty || die "could not read input from terminal"
+  [[ -z "$input" ]] && input="$default"
+  printf -v "$__v" '%s' "$input"
 }
 run_root(){ [[ "$EUID" -eq 0 ]] || die "run as root"; }
 
