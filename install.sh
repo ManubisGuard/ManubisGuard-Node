@@ -262,8 +262,14 @@ configure_inputs(){
     if "$AUTO_CONFIRM"; then
       USE_REST=false
     else
+      answer="n"
       tty_prompt answer "Do you want to use REST protocol instead of gRPC? (y/N): " "n"
-      [[ "$answer" =~ ^[Yy]$ ]] && USE_REST=true || USE_REST=false
+      answer="${answer:-n}"
+      if [[ "$answer" =~ ^[Yy]$ ]]; then
+        USE_REST=true
+      else
+        USE_REST=false
+      fi
     fi
   fi
   choose_port SERVICE_PORT "SERVICE_PORT" 62050
