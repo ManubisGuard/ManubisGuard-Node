@@ -5,14 +5,30 @@ import (
 	"log"
 
 	"github.com/pasarguard/node/common"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (s *Service) Start(ctx context.Context, data *common.Backend) (*common.BaseInfoResponse, error) {
 	s.LockControl()
 	defer s.UnlockControl()
 
-	if s.Backend() != nil {
-		log.Println("New connection, core control access was taken away from previous client.")
+	clientIP := clientIPFromContext(ctx)
+	if clientIP == "" {
+		return nil, status.Errorf(codes.PermissionDenied, "unknown client ip")
+	}
+
+	running := s.Backend() != nil
+	if running && !s.IsCurrentClient(clientIP) {
+		return nil, status.Errorf(codes.PermissionDenied, "node is controlled by another client")
+	}
+
+	// An additive Start brings up one more core on a node that is already
+	// serving. A plain Start is the panel connecting, which resets the node so
+	// that it runs exactly the cores that connection brings and nothing stale.
+	additive := running && data.GetAdditive()
+	if running && !additive {
+		log.Println("New connection from ", clientIP, " core control access was taken away from previous client.")
 		s.Disconnect()
 	}
 
@@ -20,7 +36,11 @@ func (s *Service) Start(ctx context.Context, data *common.Backend) (*common.Base
 		return nil, err
 	}
 
-	s.Connect(data.GetKeepAlive())
+	if additive {
+		s.NewRequest()
+	} else {
+		s.Connect(clientIP, data.GetKeepAlive())
+	}
 
 	return s.BaseInfoResponse(), nil
 }
