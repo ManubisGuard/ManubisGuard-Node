@@ -170,6 +170,64 @@ NODE_INSTALLER_RAW="https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-
 NODE_SERVICE_REPO="PasarGuard/node-serviced"
 NODE_SERVICE_RELEASE_API="https://api.github.com/repos/${NODE_SERVICE_REPO}/releases/latest"
 NODE_SERVICE_BINARY_NAME="node-serviced"
+AMNEZIAWG_TOOLS_VERSION="v3.1.20260812"
+AMNEZIAWG_MIN_KERNEL_MAJOR=6
+AMNEZIAWG_MIN_KERNEL_MINOR=7
+
+# Ensure the host kernel can create native AmneziaWG interfaces. The Node
+# container bundles the matching userspace tools, but the actual interface
+# type is provided by the host kernel through the DKMS module.
+ensure_amneziawg_host_runtime() {
+    if ! command -v apt-get >/dev/null 2>&1 || ! command -v dpkg >/dev/null 2>&1; then
+        colorized_echo red "AmneziaWG host runtime currently requires an apt/dpkg-based Linux host."
+        exit 1
+    fi
+
+    local kernel_release kernel_major kernel_minor
+    kernel_release="$(uname -r)"
+    kernel_major="${kernel_release%%.*}"
+    kernel_minor="${kernel_release#*.}"
+    kernel_minor="${kernel_minor%%.*}"
+    if [[ ! "$kernel_major" =~ ^[0-9]+$ || ! "$kernel_minor" =~ ^[0-9]+$ ]]; then
+        colorized_echo red "Could not determine kernel version from: $kernel_release"
+        exit 1
+    fi
+
+    if (( kernel_major < AMNEZIAWG_MIN_KERNEL_MAJOR || (kernel_major == AMNEZIAWG_MIN_KERNEL_MAJOR && kernel_minor < AMNEZIAWG_MIN_KERNEL_MINOR) )); then
+        colorized_echo yellow "Kernel $kernel_release is too old for the pinned AmneziaWG 3.1 runtime."
+        colorized_echo yellow "Installing the generic kernel and matching headers; reboot is required if the running kernel changes."
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get install -y linux-generic
+        colorized_echo red "Reboot into the newly installed kernel, then rerun the Node installer."
+        exit 1
+    fi
+
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y software-properties-common python3-launchpadlib gnupg2 dkms build-essential "linux-headers-$(uname -r)" linux-headers-generic
+
+    if ! grep -Rqs '^URIs: https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/' /etc/apt/sources.list.d /etc/apt/sources.list 2>/dev/null; then
+        add-apt-repository -y ppa:amnezia/ppa
+    fi
+
+    apt-get update
+    apt-get install -y amneziawg-dkms amneziawg-tools
+    modprobe amneziawg
+    printf '%s\n' amneziawg >/etc/modules-load.d/amneziawg.conf
+
+    local loaded_version tools_version check_iface
+    loaded_version="$(cat /sys/module/amneziawg/version 2>/dev/null || true)"
+    tools_version="$(awg --version 2>/dev/null | head -n1 || true)"
+    check_iface="manubis-awg-check-$$"
+    if ! ip link add "$check_iface" type amneziawg >/dev/null 2>&1; then
+        colorized_echo red "AmneziaWG kernel interface creation failed on $kernel_release."
+        colorized_echo red "Loaded module: ${loaded_version:-unknown}; tools: ${tools_version:-unknown}"
+        exit 1
+    fi
+    ip link delete "$check_iface" >/dev/null 2>&1 || true
+    colorized_echo green "✓ AmneziaWG host runtime ready: kernel=$kernel_release module=${loaded_version:-unknown} tools=${tools_version:-unknown}"
+}
 # Configure service paths based on APP_NAME.
 set_service_paths() {
     SERVICE_NAME="${APP_NAME}-service"
@@ -715,6 +773,7 @@ read_and_save_file() {
 # Download compose files, set up certificates, configure .env, and deploy the node.
 install_node() {
     local node_version=$1
+    ensure_amneziawg_host_runtime
     FILES_URL_PREFIX="https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/feature/amnezia-wg"
     COMPOSE_FILES_URL_PREFIX="https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/feature/amnezia-wg"
     colorized_echo blue "Creating directories..."
