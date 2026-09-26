@@ -42,6 +42,7 @@ type Controller struct {
 	cfg         *config.Config
 	apiPort     int
 	metricPort  int
+	clientIP    string
 	lastRequest time.Time
 	stats       *common.SystemStatsResponse
 	cancelFunc  context.CancelFunc
@@ -66,10 +67,11 @@ func (c *Controller) ApiKey() uuid.UUID {
 	return c.cfg.ApiKey
 }
 
-func (c *Controller) Connect(keepAlive uint64) {
+func (c *Controller) Connect(ip string, keepAlive uint64) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.lastRequest = time.Now()
+	c.clientIP = ip
 
 	if c.cancelFunc != nil {
 		c.cancelFunc()
@@ -102,6 +104,7 @@ func (c *Controller) Disconnect() {
 	defer c.mu.Unlock()
 
 	c.backends = make(map[backendKey]backend.Backend)
+	c.clientIP = ""
 	c.apiPort = netutil.FindFreePort()
 	c.metricPort = netutil.FindFreePort()
 }
@@ -118,14 +121,6 @@ func (c *Controller) IsCurrentClient(ip string) bool {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.clientIP == "" || c.clientIP == ip
-}
-
-func (c *Controller) LockControl() {
-	c.controlMu.Lock()
-}
-
-func (c *Controller) UnlockControl() {
-	c.controlMu.Unlock()
 }
 
 func (c *Controller) NewRequest() {
