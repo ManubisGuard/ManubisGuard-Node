@@ -180,27 +180,87 @@ AMNEZIAWG_MIN_KERNEL_MINOR=7
 ensure_amneziawg_host_runtime() {
     if ! command -v apt-get >/dev/null 2>&1 || ! command -v dpkg >/dev/null 2>&1; then
         colorized_echo red "AmneziaWG host runtime currently requires an apt/dpkg-based Linux host."
+        colorized_echo red "AmneziaWG host runtime در حال حاضر به سیستم Linux مبتنی بر apt/dpkg نیاز دارد."
         exit 1
     fi
 
-    local kernel_release kernel_major kernel_minor
+    local kernel_release kernel_major kernel_minor loaded_version installed_version tools_version check_iface
     kernel_release="$(uname -r)"
     kernel_major="${kernel_release%%.*}"
     kernel_minor="${kernel_release#*.}"
     kernel_minor="${kernel_minor%%.*}"
     if [[ ! "$kernel_major" =~ ^[0-9]+$ || ! "$kernel_minor" =~ ^[0-9]+$ ]]; then
         colorized_echo red "Could not determine kernel version from: $kernel_release"
+        colorized_echo red "تشخیص نسخه Kernel از $kernel_release ممکن نیست."
         exit 1
     fi
 
-    if (( kernel_major < AMNEZIAWG_MIN_KERNEL_MAJOR || (kernel_major == AMNEZIAWG_MIN_KERNEL_MAJOR && kernel_minor < AMNEZIAWG_MIN_KERNEL_MINOR) )); then
-        colorized_echo yellow "Kernel $kernel_release is too old for the pinned AmneziaWG 3.1 runtime."
-        colorized_echo yellow "Installing the generic kernel and matching headers; reboot is required if the running kernel changes."
+    request_kernel_reboot() {
+        local reason="$1"
+        colorized_echo yellow ""
+        colorized_echo yellow "=============================================================="
+        colorized_echo yellow "SYSTEM REBOOT REQUIRED / راه‌اندازی مجدد سرور الزامی است"
+        colorized_echo yellow "=============================================================="
+        colorized_echo yellow "Reason: $reason"
+        colorized_echo yellow "دلیل: $reason"
+        colorized_echo yellow ""
+        colorized_echo yellow "EN: The AmneziaWG kernel module has been installed/prepared, but the running kernel must be changed or reloaded."
+        colorized_echo yellow "FA: ماژول Kernel مربوط به AmneziaWG نصب/آماده شده است، اما برای اعمال آن باید Kernel فعال تغییر/Reload شود."
+        colorized_echo yellow "EN: The installer will NOT continue until the required reboot is completed."
+        colorized_echo yellow "FA: نصب‌کننده تا انجام ریبوت الزامی ادامه نمی‌دهد."
+        colorized_echo yellow ""
+        colorized_echo cyan "EN: After reboot, run the same Node installer command again. It will verify the kernel and continue normally."
+        colorized_echo cyan "FA: پس از ریبوت، همان دستور نصب Node را دوباره اجرا کنید؛ نصب‌کننده Kernel را بررسی کرده و ادامه نصب را انجام می‌دهد."
+        colorized_echo yellow ""
+
+        local confirm="n"
+        if [[ "${MANUBISGUARD_NODE_AUTO_REBOOT:-0}" == "1" ]]; then
+            confirm="y"
+            colorized_echo yellow "EN: MANUBISGUARD_NODE_AUTO_REBOOT=1 -> rebooting automatically."
+            colorized_echo yellow "FA: MANUBISGUARD_NODE_AUTO_REBOOT=1 است؛ ریبوت به‌صورت خودکار انجام می‌شود."
+        elif [[ -t 0 && -t 1 ]]; then
+            read -r -p "EN/FA: Reboot now? / اکنون ریبوت شود؟ [y/N]: " confirm </dev/tty || confirm="n"
+        fi
+
+        if [[ "$confirm" =~ ^[Yy]([Ee][Ss])?$ ]]; then
+            colorized_echo yellow "EN: Rebooting now..."
+            colorized_echo yellow "FA: سرور اکنون ریبوت می‌شود..."
+            sleep 2
+            reboot
+            exit 0
+        fi
+
+        colorized_echo yellow "EN: Reboot cancelled. Installation stopped safely."
+        colorized_echo yellow "FA: ریبوت لغو شد. نصب به‌صورت امن متوقف شد."
+        exit 1
+    }
+
+    install_newer_kernel() {
+        . /etc/os-release
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
-        apt-get install -y linux-generic
-        colorized_echo red "Reboot into the newly installed kernel, then rerun the Node installer."
-        exit 1
+        case "${ID:-}" in
+            ubuntu)
+                apt-get install -y linux-generic linux-headers-generic
+                ;;
+            debian)
+                apt-get install -y linux-image-amd64 linux-headers-amd64
+                ;;
+            *)
+                colorized_echo red "Unsupported distribution for automatic kernel upgrade: ${ID:-unknown}"
+                colorized_echo red "توزیع فعلی برای ارتقای خودکار Kernel پشتیبانی نمی‌شود: ${ID:-unknown}"
+                exit 1
+                ;;
+        esac
+    }
+
+    if (( kernel_major < AMNEZIAWG_MIN_KERNEL_MAJOR || (kernel_major == AMNEZIAWG_MIN_KERNEL_MAJOR && kernel_minor < AMNEZIAWG_MIN_KERNEL_MINOR) )); then
+        colorized_echo yellow "Kernel $kernel_release is too old for the pinned AmneziaWG 3.1 runtime."
+        colorized_echo yellow "Kernel $kernel_release برای AmneziaWG 3.1 بیش از حد قدیمی است."
+        colorized_echo yellow "EN: Installing a supported kernel now; a reboot is required before Node installation can continue."
+        colorized_echo yellow "FA: یک Kernel پشتیبانی‌شده نصب می‌شود؛ قبل از ادامه نصب Node باید سرور ریبوت شود."
+        install_newer_kernel
+        request_kernel_reboot "Current kernel $kernel_release is below the minimum supported version. / نسخه Kernel فعلی کمتر از حداقل نسخه پشتیبانی‌شده است."
     fi
 
     export DEBIAN_FRONTEND=noninteractive
@@ -213,21 +273,57 @@ ensure_amneziawg_host_runtime() {
 
     apt-get update
     apt-get install -y amneziawg-dkms amneziawg-tools
-    modprobe amneziawg
+
+    # Always rebuild the DKMS module for the kernel that is actually running.
+    # A newly installed DKMS package is not sufficient when an older module is
+    # already loaded in the running kernel.
+    if command -v dkms >/dev/null 2>&1; then
+        dkms autoinstall -k "$kernel_release" || true
+    fi
+    depmod -a "$kernel_release" >/dev/null 2>&1 || true
+
+    loaded_version="$(cat /sys/module/amneziawg/version 2>/dev/null || true)"
+    installed_version="$(modinfo -F version amneziawg 2>/dev/null || true)"
+
+    if [[ -n "$loaded_version" && -n "$installed_version" && "$loaded_version" != "$installed_version" ]]; then
+        colorized_echo yellow "EN: An older AmneziaWG module is currently loaded ($loaded_version), while the installed module is $installed_version."
+        colorized_echo yellow "FA: یک نسخه قدیمی‌تر از ماژول AmneziaWG در حال اجراست ($loaded_version)، در حالی که نسخه نصب‌شده $installed_version است."
+        request_kernel_reboot "Loaded AmneziaWG module does not match the installed DKMS module. / نسخه ماژول Loaded با نسخه DKMS نصب‌شده یکسان نیست."
+    fi
+
+    if ! modprobe amneziawg 2>/dev/null; then
+        colorized_echo yellow "EN: AmneziaWG could not be loaded. Rebuilding DKMS and retrying."
+        colorized_echo yellow "FA: بارگذاری AmneziaWG ممکن نبود؛ DKMS دوباره ساخته و مجدداً تلاش می‌شود."
+        dkms autoinstall -k "$kernel_release" || true
+        depmod -a "$kernel_release" >/dev/null 2>&1 || true
+        if ! modprobe amneziawg 2>/dev/null; then
+            colorized_echo yellow "EN: The current kernel cannot load the prepared AmneziaWG module."
+            colorized_echo yellow "FA: Kernel فعلی نمی‌تواند ماژول آماده‌شده AmneziaWG را Load کند."
+            install_newer_kernel
+            request_kernel_reboot "AmneziaWG could not be loaded on the running kernel. / AmneziaWG روی Kernel فعال قابل Load نبود."
+        fi
+    fi
+
     printf '%s\n' amneziawg >/etc/modules-load.d/amneziawg.conf
 
-    local loaded_version tools_version check_iface
     loaded_version="$(cat /sys/module/amneziawg/version 2>/dev/null || true)"
     tools_version="$(awg --version 2>/dev/null | head -n1 || true)"
     if [[ "$tools_version" != *"$AMNEZIAWG_TOOLS_VERSION"* ]]; then
         colorized_echo red "Unexpected AmneziaWG tools version: ${tools_version:-unknown}; expected $AMNEZIAWG_TOOLS_VERSION"
+        colorized_echo red "نسخه ابزار AmneziaWG غیرمنتظره است: ${tools_version:-unknown}؛ نسخه مورد انتظار $AMNEZIAWG_TOOLS_VERSION است."
         exit 1
     fi
+
     check_iface="manubis-awg-check-$$"
     if ! ip link add "$check_iface" type amneziawg >/dev/null 2>&1; then
-        colorized_echo red "AmneziaWG kernel interface creation failed on $kernel_release."
-        colorized_echo red "Loaded module: ${loaded_version:-unknown}; tools: ${tools_version:-unknown}"
-        exit 1
+        colorized_echo yellow "EN: Native AmneziaWG interface creation failed on $kernel_release."
+        colorized_echo yellow "FA: ساخت Interface بومی AmneziaWG روی Kernel $kernel_release ناموفق بود."
+        colorized_echo yellow "EN: Loaded module: ${loaded_version:-unknown}; installed module: ${installed_version:-unknown}; tools: ${tools_version:-unknown}"
+        colorized_echo yellow "FA: ماژول Loaded: ${loaded_version:-نامشخص}؛ ماژول نصب‌شده: ${installed_version:-نامشخص}؛ ابزار: ${tools_version:-نامشخص}"
+        colorized_echo yellow "EN: A supported kernel will be installed and the installer will request a reboot."
+        colorized_echo yellow "FA: یک Kernel پشتیبانی‌شده نصب می‌شود و نصب‌کننده درخواست ریبوت خواهد داد."
+        install_newer_kernel
+        request_kernel_reboot "Native AmneziaWG interface creation failed. / ساخت Interface بومی AmneziaWG ناموفق بود."
     fi
     ip link delete "$check_iface" >/dev/null 2>&1 || true
     colorized_echo green "✓ AmneziaWG host runtime ready: kernel=$kernel_release module=${loaded_version:-unknown} tools=${tools_version:-unknown}"
