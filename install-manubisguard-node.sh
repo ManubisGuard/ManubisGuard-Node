@@ -219,6 +219,10 @@ ensure_amneziawg_host_runtime() {
     local loaded_version tools_version check_iface
     loaded_version="$(cat /sys/module/amneziawg/version 2>/dev/null || true)"
     tools_version="$(awg --version 2>/dev/null | head -n1 || true)"
+    if [[ "$tools_version" != *"$AMNEZIAWG_TOOLS_VERSION"* ]]; then
+        colorized_echo red "Unexpected AmneziaWG tools version: ${tools_version:-unknown}; expected $AMNEZIAWG_TOOLS_VERSION"
+        exit 1
+    fi
     check_iface="manubis-awg-check-$$"
     if ! ip link add "$check_iface" type amneziawg >/dev/null 2>&1; then
         colorized_echo red "AmneziaWG kernel interface creation failed on $kernel_release."
