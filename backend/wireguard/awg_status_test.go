@@ -9,8 +9,10 @@ import (
 func TestParseAWGDeviceDump(t *testing.T) {
 	const key = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
 	const peerKey = "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE="
-	const dump = key + "\t" + key + "\t" + key + "\t51820\t3\t20\t50\t15\t64\t25\t8\t1-2\t3-4\t5-6\t7-8\t(null)\t(null)\t(null)\t(null)\t(null)\t(none)\t0\t0\t0\toff\n" +
-		peerKey + "\t(none)\t192.0.2.1:54321\t10.0.0.2/32,10.0.0.3/32\t1700000000\t1234\t5678\t25\n"
+	const dump = key + "	" + key + "	51820	3	20	50	15	64	25	8	1-2	3-4	5-6	7-8	(null)	(null)	(null)	(null)	(null)	(none)	0	0	0	off
+" +
+		peerKey + "	(none)	192.0.2.1:54321	10.0.0.2/32,10.0.0.3/32	1700000000	1234	5678	25
+"
 
 	device, err := parseAWGDeviceDump("awg0", dump)
 	if err != nil {
@@ -21,6 +23,12 @@ func TestParseAWGDeviceDump(t *testing.T) {
 	}
 	if device.ListenPort != 51820 {
 		t.Fatalf("listen port = %d, want 51820", device.ListenPort)
+	}
+	if device.PublicKey.String() != key {
+		t.Fatalf("device public key = %q, want %q", device.PublicKey.String(), key)
+	}
+	if device.PrivateKey.String() != key {
+		t.Fatalf("device private key = %q, want %q", device.PrivateKey.String(), key)
 	}
 	if len(device.Peers) != 1 {
 		t.Fatalf("peer count = %d, want 1", len(device.Peers))
@@ -57,7 +65,8 @@ func TestReadAWGDeviceUsesDumpRunner(t *testing.T) {
 		if strings.Join(args, " ") != "show awg0 dump" {
 			t.Fatalf("unexpected awg command: %v", args)
 		}
-		return []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\tAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\t51820\t0\t0\t0\t0\t0\t0\t0\t1\t2\t3\t4\t(null)\t(null)\t(null)\t(null)\t(null)\t(none)\t0\toff\n"), nil
+		return []byte("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=	51820	0	0	0	0	0	0	0	1	2	3	4	(null)	(null)	(null)	(null)	(null)	(none)	0	off
+"), nil
 	}
 
 	device, err := readAWGDevice("awg0")
