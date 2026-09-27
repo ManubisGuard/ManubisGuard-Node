@@ -23,13 +23,12 @@ func readAWGDevice(interfaceName string) (*wgtypes.Device, error) {
 }
 
 func parseAWGDeviceDump(interfaceName, output string) (*wgtypes.Device, error) {
-	lines := strings.Split(strings.TrimSpace(output), "
-")
+	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if len(lines) == 0 || strings.TrimSpace(lines[0]) == "" {
 		return nil, fmt.Errorf("awg show %s dump returned empty output", interfaceName)
 	}
 
-	fields := strings.Split(lines[0], "	")
+	fields := strings.Split(lines[0], "\t")
 	if len(fields) < 4 {
 		return nil, fmt.Errorf("invalid AWG device dump: expected at least 4 interface fields, got %d", len(fields))
 	}
@@ -79,7 +78,7 @@ func parseAWGDeviceDump(interfaceName, output string) (*wgtypes.Device, error) {
 }
 
 func parseAWGPeerDump(line string) (wgtypes.Peer, error) {
-	fields := strings.Split(line, "	")
+	fields := strings.Split(line, "\t")
 	if len(fields) < 8 {
 		return wgtypes.Peer{}, fmt.Errorf("invalid AWG peer dump: expected at least 8 fields, got %d", len(fields))
 	}

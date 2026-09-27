@@ -20,11 +20,14 @@ func (wg *WireGuard) syncUsersFull(users []*common.User) error {
 		return err
 	}
 
-	if !diff.Changed {
+	// A full sync is also the reconciliation boundary for interface-wide
+	// peer state. In particular, the core PSK is not stored in PeerInfo, so a
+	// PSK rotation can leave an otherwise identical peer looking unchanged.
+	// AWG must still receive the authoritative peer snapshot in that case.
+	psk, _ := wg.config.GetPreSharedKey()
+	if !diff.Changed && psk == nil && !wg.config.AmneziaWG {
 		return nil
 	}
-
-	psk, _ := wg.config.GetPreSharedKey()
 	peerConfigs, appliedKeys := wg.buildTargetPeerConfigs(diff.TargetPeers, psk)
 
 	wg.mu.RLock()

@@ -1,15 +1,17 @@
+[Reading 958 lines from start (total: 958 lines, 0 remaining)]
+
 package wireguard
 
 import (
-	"time"
 	"context"
 	"net"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/awg-go/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/pkg/stats"
-	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
 func TestSyncUserRejectsNilUser(t *testing.T) {
@@ -393,6 +395,61 @@ func TestSyncUsersNoEffectiveChangeSkipsReplaceApply(t *testing.T) {
 
 	if applyCalls != 0 {
 		t.Fatalf("expected no ConfigureDevice calls for no-op full sync, got %d", applyCalls)
+	}
+}
+
+func TestSyncUsersReappliesPresharedKeyOnNoPeerChange(t *testing.T) {
+	cfg, err := NewConfig(`{
+		"interface_name":"wg-test",
+		"listen_port":51820,
+		"address":["10.65.0.1/24"],
+		"pre_shared_key":"AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
+	}`)
+	if err != nil {
+		t.Fatalf("failed to create config: %v", err)
+	}
+
+	_, key, err := GenerateKeyPair()
+	if err != nil {
+		t.Fatalf("failed to generate key: %v", err)
+	}
+
+	ps := NewPeerStore()
+	ps.ReplaceAll([]*PeerInfo{mustPeerInfo("keep@example.com", key, []string{"10.65.0.2/32"})})
+
+	var applied wgtypes.Config
+	wg := &WireGuard{
+		config:       cfg,
+		peerStore:    ps,
+		statsTracker: stats.New(),
+		manager: &Manager{
+			iFaceName: "wg-test",
+			client: &fakeWGClient{
+				configureDeviceFn: func(interfaceName string, cfg wgtypes.Config) error {
+					applied = cfg
+					return nil
+				},
+			},
+		},
+		state: lifecycleRunning,
+	}
+
+	users := []*common.User{{
+		Email:    "keep@example.com",
+		Inbounds: []string{"wg-test"},
+		Proxies: &common.Proxy{Wireguard: &common.Wireguard{
+			PublicKey: key, PeerIps: []string{"10.65.0.2/32"},
+		}},
+	}}
+
+	if err := wg.SyncUsers(context.Background(), users); err != nil {
+		t.Fatalf("SyncUsers failed: %v", err)
+	}
+	if !applied.ReplacePeers || len(applied.Peers) != 1 {
+		t.Fatalf("expected authoritative peer replacement, got replace=%v peers=%d", applied.ReplacePeers, len(applied.Peers))
+	}
+	if applied.Peers[0].PresharedKey == nil {
+		t.Fatal("expected current core PSK to be reapplied to the peer")
 	}
 }
 
@@ -901,3 +958,5 @@ func mustPeerInfo(email, pubStr string, ips []string) *PeerInfo {
 		AllowedIPs: parsedIPs,
 	}
 }
+
+[executed on device: CLY327268 (e368f919-60ca-4caa-85dc-3c272df9df1d)]
