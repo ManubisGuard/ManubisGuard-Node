@@ -23,19 +23,20 @@ func readAWGDevice(interfaceName string) (*wgtypes.Device, error) {
 }
 
 func parseAWGDeviceDump(interfaceName, output string) (*wgtypes.Device, error) {
-	lines := strings.Split(strings.TrimSpace(output), "\n")
+	lines := strings.Split(strings.TrimSpace(output), "
+")
 	if len(lines) == 0 || strings.TrimSpace(lines[0]) == "" {
 		return nil, fmt.Errorf("awg show %s dump returned empty output", interfaceName)
 	}
 
-	fields := strings.Split(lines[0], "\t")
+	fields := strings.Split(lines[0], "	")
 	if len(fields) < 4 {
 		return nil, fmt.Errorf("invalid AWG device dump: expected at least 4 interface fields, got %d", len(fields))
 	}
 
-	listenPort, err := strconv.Atoi(fields[3])
+	listenPort, err := strconv.Atoi(fields[2])
 	if err != nil {
-		return nil, fmt.Errorf("invalid AWG listen port %q: %w", fields[3], err)
+		return nil, fmt.Errorf("invalid AWG listen port %q: %w", fields[2], err)
 	}
 
 	device := &wgtypes.Device{
@@ -44,16 +45,18 @@ func parseAWGDeviceDump(interfaceName, output string) (*wgtypes.Device, error) {
 		ListenPort: listenPort,
 	}
 
-	if fields[2] != "(none)" && fields[2] != "(hidden)" {
-		key, err := wgtypes.ParseKey(fields[2])
+	// awg show <iface> dump starts with private_key, public_key, listen_port, Jc, ...
+	// Keep header parsing aligned with the actual AWG dump format.
+	if fields[1] != "(none)" && fields[1] != "(hidden)" {
+		key, err := wgtypes.ParseKey(fields[1])
 		if err != nil {
 			return nil, fmt.Errorf("invalid AWG public key: %w", err)
 		}
 		device.PublicKey = key
 	}
 
-	if fields[1] != "(none)" && fields[1] != "(hidden)" {
-		key, err := wgtypes.ParseKey(fields[1])
+	if fields[0] != "(none)" && fields[0] != "(hidden)" {
+		key, err := wgtypes.ParseKey(fields[0])
 		if err != nil {
 			return nil, fmt.Errorf("invalid AWG private key: %w", err)
 		}
@@ -76,7 +79,7 @@ func parseAWGDeviceDump(interfaceName, output string) (*wgtypes.Device, error) {
 }
 
 func parseAWGPeerDump(line string) (wgtypes.Peer, error) {
-	fields := strings.Split(line, "\t")
+	fields := strings.Split(line, "	")
 	if len(fields) < 8 {
 		return wgtypes.Peer{}, fmt.Errorf("invalid AWG peer dump: expected at least 8 fields, got %d", len(fields))
 	}
