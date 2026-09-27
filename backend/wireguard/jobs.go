@@ -58,8 +58,6 @@ func (wg *WireGuard) updateConnectedPeers(ctx context.Context) {
 		return
 	}
 
-	activeHandshakeCutoff := time.Now().Add(-onlineActivityThreshold)
-
 	emailByKey := wg.peerStore.GetEmailMap()
 	samples := make([]stats.Sample, 0, len(device.Peers))
 
@@ -70,12 +68,8 @@ func (wg *WireGuard) updateConnectedPeers(ctx context.Context) {
 		default:
 		}
 
-		if peer.LastHandshakeTime.IsZero() {
-			continue // never connected
-		}
-		if peer.LastHandshakeTime.Before(activeHandshakeCutoff) {
-			continue // stale/offline peer
-		}
+		// Always sample configured peers for traffic accounting. A stale handshake
+		// must not make us miss later traffic on an otherwise configured peer.
 
 		peerKey := peer.PublicKey.String()
 		email, ok := emailByKey[peerKey]
