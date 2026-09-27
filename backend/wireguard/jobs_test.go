@@ -10,7 +10,7 @@ import (
 	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
-func TestUpdateConnectedPeersSkipsStaleHandshakePeers(t *testing.T) {
+func TestUpdateConnectedPeersTracksStaleHandshakePeersForTraffic(t *testing.T) {
 	_, recentPub, err := GenerateKeyPair()
 	if err != nil {
 		t.Fatalf("failed to generate recent key pair: %v", err)
@@ -77,25 +77,19 @@ func TestUpdateConnectedPeersSkipsStaleHandshakePeers(t *testing.T) {
 	wg.updateConnectedPeers(context.Background())
 
 	entries := wg.statsTracker.GetStatsEntries([]string{recentKey.String(), staleKey.String()})
-	if len(entries) != 1 {
-		t.Fatalf("expected one tracked peer entry, got %d", len(entries))
+	if len(entries) != 2 {
+		t.Fatalf("expected both configured peers to be tracked, got %d", len(entries))
 	}
 	if _, ok := entries[recentKey.String()]; !ok {
 		t.Fatalf("expected recent peer to be tracked, but it was not")
 	}
-	if _, ok := entries[staleKey.String()]; ok {
-		t.Fatalf("expected stale peer to be excluded from tracking")
+	if _, ok := entries[staleKey.String()]; !ok {
+		t.Fatalf("expected stale peer traffic to be tracked")
 	}
 
 	resp := wg.statsTracker.GetUsersStats(context.Background(), false)
 
-	if len(resp.GetStats()) != 2 {
-		t.Fatalf("expected stats only for one active peer (2 entries), got %d", len(resp.GetStats()))
-	}
-
-	for _, stat := range resp.GetStats() {
-		if stat.GetName() != "recent@example.com" {
-			t.Fatalf("unexpected user in stats: got %s, expected only recent@example.com", stat.GetName())
-		}
+	if len(resp.GetStats()) != 4 {
+		t.Fatalf("expected stats for both peers (4 entries), got %d", len(resp.GetStats()))
 	}
 }
