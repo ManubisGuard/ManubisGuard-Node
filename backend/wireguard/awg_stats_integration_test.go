@@ -5,9 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/pasarguard/node/common"
-
 	"github.com/awg-go/awgctrl-go/wgtypes"
+	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/config"
 	pkgstats "github.com/pasarguard/node/pkg/stats"
 )
