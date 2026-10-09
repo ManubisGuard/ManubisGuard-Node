@@ -2,6 +2,8 @@ package wireguard
 
 import (
 	"context"
+
+	"github.com/pasarguard/node/common"
 	"strings"
 	"testing"
 
@@ -74,5 +76,37 @@ func TestAWGTrafficCountersReachStatsTracker(t *testing.T) {
 	}
 	if entry.CurrentRx != 1234 || entry.CurrentTx != 5678 {
 		t.Fatalf("AWG traffic counters lost: rx=%d tx=%d, want rx=1234 tx=5678", entry.CurrentRx, entry.CurrentTx)
+	}
+
+	// Exercise the same aggregate stats RPC consumed by the panel usage job.
+	wg.state = lifecycleRunning
+	response, err := wg.GetStats(context.Background(), &common.StatRequest{
+		Type:  common.StatType_UsersStat,
+		Reset: true,
+	})
+	if err != nil {
+		t.Fatalf("GetStats(UsersStat) returned error: %v", err)
+	}
+	if len(response.Stats) != 2 {
+		t.Fatalf("GetStats(UsersStat) returned %d counters, want RX and TX", len(response.Stats))
+	}
+	got := map[string]int64{}
+	for _, stat := range response.Stats {
+		if stat.Name != "traffic-test@example.invalid" {
+			t.Fatalf("stats name = %q, want peer email", stat.Name)
+		}
+		got[stat.Type] = stat.Value
+	}
+	if got["downlink"] != 1234 || got["uplink"] != 5678 {
+		t.Fatalf("UsersStat counters = %#v, want downlink=1234 uplink=5678", got)
+	}
+
+	// reset=true must acknowledge the traffic exactly once, not duplicate it.
+	again, err := wg.GetStats(context.Background(), &common.StatRequest{Type: common.StatType_UsersStat})
+	if err != nil {
+		t.Fatalf("second GetStats(UsersStat) returned error: %v", err)
+	}
+	if len(again.Stats) != 0 {
+		t.Fatalf("stats were repeated after reset: %#v", again.Stats)
 	}
 }
