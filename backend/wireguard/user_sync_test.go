@@ -1,5 +1,3 @@
-[Reading 958 lines from start (total: 958 lines, 0 remaining)]
-
 package wireguard
 
 import (
