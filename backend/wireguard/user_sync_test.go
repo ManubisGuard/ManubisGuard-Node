@@ -957,4 +957,3 @@ func mustPeerInfo(email, pubStr string, ips []string) *PeerInfo {
 	}
 }
 
-[executed on device: CLY327268 (e368f919-60ca-4caa-85dc-3c272df9df1d)]
