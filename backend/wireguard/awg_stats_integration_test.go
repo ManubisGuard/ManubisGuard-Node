@@ -2,10 +2,10 @@ package wireguard
 
 import (
 	"context"
-
-	"github.com/pasarguard/node/common"
 	"strings"
 	"testing"
+
+	"github.com/pasarguard/node/common"
 
 	"github.com/awg-go/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/config"
