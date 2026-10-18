@@ -1003,6 +1003,10 @@ install_node() {
     # Modifying .env file
     sed -i "s/^SERVICE_PORT *= *.*/SERVICE_PORT= ${SERVICE_PORT}/" "$APP_DIR/.env"
     sed -i "s/^API_KEY *= *.*/API_KEY= ${API_KEY}/" "$APP_DIR/.env"
+    # Keep runtime paths aligned with the selected instance DATA_DIR; the container must see the mounted data volume.
+    sed -i "s|^SSL_CERT_FILE *=.*|SSL_CERT_FILE= ${SSL_CERT_FILE}|" "$APP_DIR/.env"
+    sed -i "s|^SSL_KEY_FILE *=.*|SSL_KEY_FILE= ${SSL_KEY_FILE}|" "$APP_DIR/.env"
+    sed -i "s|^# *GENERATED_CONFIG_PATH *=.*|GENERATED_CONFIG_PATH= ${DATA_DIR}/generated|" "$APP_DIR/.env"
     if [ "$USE_REST" -eq 1 ]; then
         sed -i 's/^# \(SERVICE_PROTOCOL *=.*\)/SERVICE_PROTOCOL= "rest"/' "$APP_DIR/.env"
     else
