@@ -10,6 +10,11 @@ permissions:
   contents: read
   packages: write
 
+# Avoid stale concurrent builds racing to overwrite the mutable latest tag.
+concurrency:
+  group: publish-node-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   docker:
     runs-on: ubuntu-latest
@@ -38,7 +43,7 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
-          platforms: linux/amd64
+          platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
