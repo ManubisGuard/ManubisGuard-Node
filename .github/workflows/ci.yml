@@ -4,17 +4,40 @@ on:
   push:
     branches: ["main", "feature/amnezia-wg"]
   pull_request:
-    branches: ["main"]
+    branches: ["main", "feature/amnezia-wg"]
+
+permissions:
+  contents: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-go@v6
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
         with:
-          go-version: "1.26.x"
+          go-version: "1.26.3"
           cache: true
-      - run: go mod download
-      - run: go test ./backend/wireguard ./cmd/node -v -p 1
-      - run: go build ./cmd/node
+
+      - name: Validate shell scripts
+        run: |
+          set -euo pipefail
+          while IFS= read -r -d '' file; do
+            bash -n "$file"
+          done < <(find . -type f -name '*.sh' -not -path './.git/*' -print0)
+          bash -n manubis.sh
+
+      - name: Validate Docker Compose configuration
+        env:
+          API_KEY: "00000000-0000-4000-8000-000000000000"
+        run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Download Go modules
+        run: go mod download
+
+      - name: Run Go tests
+        run: go test ./... -p 1
+
+      - name: Build Node
+        run: go build ./cmd/node
