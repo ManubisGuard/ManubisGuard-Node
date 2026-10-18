@@ -174,9 +174,10 @@ NODE_INSTALLER_RAW="https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-
 NODE_SERVICE_REPO="PasarGuard/node-serviced"
 NODE_SERVICE_RELEASE_API="https://api.github.com/repos/${NODE_SERVICE_REPO}/releases/latest"
 NODE_SERVICE_BINARY_NAME="node-serviced"
-AMNEZIAWG_TOOLS_VERSION="v3.1.20260812"
-AMNEZIAWG_MIN_KERNEL_MAJOR=6
-AMNEZIAWG_MIN_KERNEL_MINOR=7
+AMNEZIAWG_TOOLS_VERSION="v1.0.20260618-2"
+AMNEZIAWG_KERNEL_TAG="v1.0.20260611"
+AMNEZIAWG_MIN_KERNEL_MAJOR=5
+AMNEZIAWG_MIN_KERNEL_MINOR=6
 
 # Ensure the host kernel can create native AmneziaWG interfaces. The Node
 # container bundles the matching userspace tools, but the actual interface
@@ -259,8 +260,8 @@ ensure_amneziawg_host_runtime() {
     }
 
     if (( kernel_major < AMNEZIAWG_MIN_KERNEL_MAJOR || (kernel_major == AMNEZIAWG_MIN_KERNEL_MAJOR && kernel_minor < AMNEZIAWG_MIN_KERNEL_MINOR) )); then
-        colorized_echo yellow "Kernel $kernel_release is too old for the pinned AmneziaWG 3.1 runtime."
-        colorized_echo yellow "Kernel $kernel_release برای AmneziaWG 3.1 بیش از حد قدیمی است."
+        colorized_echo yellow "Kernel $kernel_release is too old for the pinned AmneziaWG 2.0 runtime."
+        colorized_echo yellow "Kernel $kernel_release برای AmneziaWG 2.0 بیش از حد قدیمی است."
         colorized_echo yellow "EN: Installing a supported kernel now; a reboot is required before Node installation can continue."
         colorized_echo yellow "FA: یک Kernel پشتیبانی‌شده نصب می‌شود؛ قبل از ادامه نصب Node باید سرور ریبوت شود."
         install_newer_kernel
@@ -269,14 +270,46 @@ ensure_amneziawg_host_runtime() {
 
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y software-properties-common python3-launchpadlib gnupg2 dkms build-essential "linux-headers-$(uname -r)" linux-headers-generic
+    apt-get install -y git dkms build-essential bc libelf-dev "linux-headers-$(uname -r)" linux-headers-generic
 
-    if ! grep -Rqs '^URIs: https://ppa.launchpadcontent.net/amnezia/ppa/ubuntu/' /etc/apt/sources.list.d /etc/apt/sources.list 2>/dev/null; then
-        add-apt-repository -y ppa:amnezia/ppa
+    # Do not silently install the moving PPA package: its latest release may be
+    # AmneziaWG 3.x. Pin both host kernel module and tools to the AWG 2.0 tags.
+    # Remove distro/PPA-managed copies so they cannot shadow the pinned tools or
+    # conflict with the DKMS source we install below.
+    if dpkg-query -W -f='${db:Status-Abbrev}' amneziawg-dkms 2>/dev/null | grep -q '^ii'; then
+        apt-get remove -y amneziawg-dkms
+    fi
+    if dpkg-query -W -f='${db:Status-Abbrev}' amneziawg-tools 2>/dev/null | grep -q '^ii'; then
+        apt-get remove -y amneziawg-tools
     fi
 
-    apt-get update
-    apt-get install -y amneziawg-dkms amneziawg-tools
+    local kernel_source_dir tools_source_dir
+    kernel_source_dir="$(mktemp -d /tmp/manubisguard-awg2-kernel.XXXXXX)"
+    tools_source_dir="$(mktemp -d /tmp/manubisguard-awg2-tools.XXXXXX)"
+    if ! git clone --depth 1 --branch "$AMNEZIAWG_KERNEL_TAG" https://github.com/amnezia-vpn/amneziawg-linux-kernel-module.git "$kernel_source_dir"; then
+        rm -rf "$kernel_source_dir" "$tools_source_dir"
+        colorized_echo red "Failed to download pinned AmneziaWG 2.0 kernel module ($AMNEZIAWG_KERNEL_TAG)."
+        exit 1
+    fi
+    if ! make -C "$kernel_source_dir/src" dkms-install; then
+        rm -rf "$kernel_source_dir" "$tools_source_dir"
+        colorized_echo red "Failed to build/install the pinned AmneziaWG 2.0 kernel module."
+        exit 1
+    fi
+    rm -rf "$kernel_source_dir"
+
+    if ! git clone --depth 1 --branch "$AMNEZIAWG_TOOLS_VERSION" https://github.com/amnezia-vpn/amneziawg-tools.git "$tools_source_dir"; then
+        rm -rf "$tools_source_dir"
+        colorized_echo red "Failed to download pinned AmneziaWG 2.0 tools ($AMNEZIAWG_TOOLS_VERSION)."
+        exit 1
+    fi
+    if ! make -C "$tools_source_dir/src"; then
+        rm -rf "$tools_source_dir"
+        colorized_echo red "Failed to build pinned AmneziaWG 2.0 tools."
+        exit 1
+    fi
+    install -D -m 0755 "$tools_source_dir/src/wg" /usr/local/bin/awg
+    rm -rf "$tools_source_dir"
 
     # Always rebuild the DKMS module for the kernel that is actually running.
     # A newly installed DKMS package is not sufficient when an older module is
