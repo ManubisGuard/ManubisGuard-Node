@@ -268,9 +268,24 @@ ensure_amneziawg_host_runtime() {
         request_kernel_reboot "Current kernel $kernel_release is below the minimum supported version. / نسخه Kernel فعلی کمتر از حداقل نسخه پشتیبانی‌شده است."
     fi
 
+    . /etc/os-release
+    local header_meta_package
+    case "${ID:-}" in
+        ubuntu|linuxmint)
+            header_meta_package="linux-headers-generic"
+            ;;
+        debian)
+            header_meta_package="linux-headers-amd64"
+            ;;
+        *)
+            colorized_echo red "Unsupported apt-based distribution for the pinned AmneziaWG 2.0 kernel module: ${ID:-unknown}"
+            exit 1
+            ;;
+    esac
+
     export DEBIAN_FRONTEND=noninteractive
     apt-get update
-    apt-get install -y git dkms build-essential bc libelf-dev "linux-headers-$(uname -r)" linux-headers-generic
+    apt-get install -y git dkms build-essential bc libelf-dev "linux-headers-$(uname -r)" "$header_meta_package"
 
     # Do not silently install the moving PPA package: its latest release may be
     # AmneziaWG 3.x. Pin both host kernel module and tools to the AWG 2.0 tags.
