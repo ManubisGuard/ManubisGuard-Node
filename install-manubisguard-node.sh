@@ -315,7 +315,7 @@ ensure_amneziawg_host_runtime() {
     fi
 
     # Linux interface names are limited to IFNAMSIZ-1 (15 bytes); keep this probe name short.
-    check_iface="awgchk-$"
+    check_iface="awgchk-${BASHPID}"
     if ! ip link add "$check_iface" type amneziawg >/dev/null 2>&1; then
         colorized_echo yellow "EN: Native AmneziaWG interface creation failed on $kernel_release."
         colorized_echo yellow "FA: ساخت Interface بومی AmneziaWG روی Kernel $kernel_release ناموفق بود."
