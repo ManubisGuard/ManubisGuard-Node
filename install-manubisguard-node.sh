@@ -287,17 +287,9 @@ ensure_amneziawg_host_runtime() {
     apt-get update
     apt-get install -y git dkms build-essential bc libelf-dev "linux-headers-$(uname -r)" "$header_meta_package"
 
-    # Do not silently install the moving PPA package: its latest release may be
-    # AmneziaWG 3.x. Pin both host kernel module and tools to the AWG 2.0 tags.
-    # Remove distro/PPA-managed copies so they cannot shadow the pinned tools or
-    # conflict with the DKMS source we install below.
-    if dpkg-query -W -f='${db:Status-Abbrev}' amneziawg-dkms 2>/dev/null | grep -q '^ii'; then
-        apt-get remove -y amneziawg-dkms
-    fi
-    if dpkg-query -W -f='${db:Status-Abbrev}' amneziawg-tools 2>/dev/null | grep -q '^ii'; then
-        apt-get remove -y amneziawg-tools
-    fi
-
+    # Pin both the host kernel module and tools to known AWG 2.0 tags.
+    # Download/build sources before removing any installed package, so a network
+    # or compilation failure does not unnecessarily remove the existing runtime.
     local kernel_source_dir tools_source_dir
     kernel_source_dir="$(mktemp -d /tmp/manubisguard-awg2-kernel.XXXXXX)"
     tools_source_dir="$(mktemp -d /tmp/manubisguard-awg2-tools.XXXXXX)"
@@ -306,25 +298,34 @@ ensure_amneziawg_host_runtime() {
         colorized_echo red "Failed to download pinned AmneziaWG 2.0 kernel module ($AMNEZIAWG_KERNEL_TAG)."
         exit 1
     fi
+    if ! git clone --depth 1 --branch "$AMNEZIAWG_TOOLS_VERSION" https://github.com/amnezia-vpn/amneziawg-tools.git "$tools_source_dir"; then
+        rm -rf "$kernel_source_dir" "$tools_source_dir"
+        colorized_echo red "Failed to download pinned AmneziaWG 2.0 tools ($AMNEZIAWG_TOOLS_VERSION)."
+        exit 1
+    fi
+    if ! make -C "$tools_source_dir/src"; then
+        rm -rf "$kernel_source_dir" "$tools_source_dir"
+        colorized_echo red "Failed to build pinned AmneziaWG 2.0 tools."
+        exit 1
+    fi
+
+    # Remove moving PPA packages so AWG 3.x binaries/modules cannot shadow the
+    # pinned AWG 2.0 runtime. Rebuild DKMS from the pinned source tag.
+    if dpkg-query -W -f='${db:Status-Abbrev}' amneziawg-dkms 2>/dev/null | grep -q '^ii'; then
+        apt-get remove -y amneziawg-dkms
+    fi
+    if dpkg-query -W -f='${db:Status-Abbrev}' amneziawg-tools 2>/dev/null | grep -q '^ii'; then
+        apt-get remove -y amneziawg-tools
+    fi
+    dkms remove -m amneziawg -v 1.0.0 --all >/dev/null 2>&1 || true
+    rm -rf /usr/src/amneziawg-1.0.0
     if ! make -C "$kernel_source_dir/src" dkms-install; then
         rm -rf "$kernel_source_dir" "$tools_source_dir"
         colorized_echo red "Failed to build/install the pinned AmneziaWG 2.0 kernel module."
         exit 1
     fi
-    rm -rf "$kernel_source_dir"
-
-    if ! git clone --depth 1 --branch "$AMNEZIAWG_TOOLS_VERSION" https://github.com/amnezia-vpn/amneziawg-tools.git "$tools_source_dir"; then
-        rm -rf "$tools_source_dir"
-        colorized_echo red "Failed to download pinned AmneziaWG 2.0 tools ($AMNEZIAWG_TOOLS_VERSION)."
-        exit 1
-    fi
-    if ! make -C "$tools_source_dir/src"; then
-        rm -rf "$tools_source_dir"
-        colorized_echo red "Failed to build pinned AmneziaWG 2.0 tools."
-        exit 1
-    fi
     install -D -m 0755 "$tools_source_dir/src/wg" /usr/local/bin/awg
-    rm -rf "$tools_source_dir"
+    rm -rf "$kernel_source_dir" "$tools_source_dir"
 
     # Always rebuild the DKMS module for the kernel that is actually running.
     # A newly installed DKMS package is not sufficient when an older module is
