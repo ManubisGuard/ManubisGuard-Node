@@ -81,7 +81,7 @@ func TestAWGTrafficCountersReachStatsTracker(t *testing.T) {
 	wg.state = lifecycleRunning
 	response, err := wg.GetStats(context.Background(), &common.StatRequest{
 		Type:  common.StatType_UsersStat,
-		Reset: true,
+		Reset_: true,
 	})
 	if err != nil {
 		t.Fatalf("GetStats(UsersStat) returned error: %v", err)
