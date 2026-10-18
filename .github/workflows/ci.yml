@@ -12,6 +12,9 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      API_KEY: "00000000-0000-4000-8000-000000000000"
+      GOTOOLCHAIN: auto
     steps:
       - uses: actions/checkout@v4
 
@@ -29,9 +32,15 @@ jobs:
           bash -n manubis.sh
 
       - name: Validate Docker Compose configuration
-        env:
-          API_KEY: "00000000-0000-4000-8000-000000000000"
         run: docker compose -f docker-compose.yml config --quiet
+
+      - name: Install Xray test dependency
+        run: make install_xray
+
+      - name: Generate test TLS certificates
+        run: |
+          make generate_server_cert
+          make generate_client_cert
 
       - name: Download Go modules
         run: go mod download
