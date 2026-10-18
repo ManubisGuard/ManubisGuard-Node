@@ -62,3 +62,28 @@ Updated: 2026-10-18
 - `Makefile` still calls upstream PasarGuard scripts for Xray/core installation; node-serviced is still sourced from the upstream release repository. These are remaining upstream dependencies, not fixed by this audit.
 - `Dockerfile.wireguard` and `Dockerfile.xray` retain upstream image-source labels and need consistent ManubisGuard metadata if those images remain supported.
 - Need run a clean-host installation, register the node in ManubisGuard Panel, and verify certificate/API-key authentication plus config generation and traffic accounting end to end.
+
+
+## Latest debugging pass: AWG version pin, installer portability, and CI failures
+
+Updated: 2026-10-18
+
+### Code fixes
+- Pinned the Node container's AmneziaWG tools to the project's requested protocol generation rather than the newer 3.x tools.
+- Updated the host installer to build the kernel module and tools from pinned source tags instead of silently installing the moving PPA latest package.
+- Staged source downloads and the tools build before removing existing package-managed copies, reducing the chance that a failed download removes a working runtime.
+- Added idempotent DKMS cleanup before installing the pinned kernel module source.
+- Selected the kernel-header meta-package by distribution: Ubuntu/Linux Mint use `linux-headers-generic`; Debian uses `linux-headers-amd64`.
+- Fixed the generated protobuf test request field from `Reset` to `Reset_`.
+
+### CI diagnosis and corrections
+- An earlier test run failed at compile time because `common.StatRequest` exposes the generated field `Reset_`, not `Reset`. The test was corrected.
+- A subsequent full-suite run exposed test prerequisites that the old CI omitted: `/usr/local/bin/xray`, generated TLS certificates, and a valid API key. CI now provisions Xray, generates server/client test certificates, sets a test API key, then runs all Go packages.
+- Shell syntax and Docker Compose validation passed in the latest observed CI attempt. The full Go test stage was still running at the last check; do not mark the suite as passed until the newest run finishes.
+- The image build/publish for the latest branch head was queued/in progress at the last check. Do not treat the image as validated until the workflow completes.
+
+### Remaining validation
+- Complete the latest GitHub Actions run and fix any further test failures.
+- Verify the pinned kernel module build on a clean Ubuntu host and a clean Debian host. This source-build path has not yet been validated end-to-end.
+- Perform a clean-host install, then verify node registration, TLS/API-key authentication, config generation, and traffic accounting through the panel.
+- Remaining upstream dependencies are documented above: the Go module path, Xray/core install script, and node-serviced release source.
