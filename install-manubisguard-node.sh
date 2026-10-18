@@ -3,14 +3,14 @@ set -e
 
 SCRIPT_COMMIT_SHA="${SCRIPT_COMMIT_SHA:-__SCRIPT_COMMIT_SHA__}"
 SCRIPT_DIR="${PG_NODE_SCRIPT_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)}"
-SHARED_LIB_DIR="${SCRIPT_DIR}/lib"
+SHARED_LIB_DIR="${SCRIPT_DIR}/scripts/lib"
 REQUIRED_SHARED_LIBS="common.sh system.sh docker.sh github.sh"
 # Running from a local checkout/bundle (libs sit next to this script) vs. an
 # installed copy (libs live under /usr/local/lib). Only the installed copy is
 # auto-refreshed below; a checkout's libs are used as-is.
 running_from_checkout=true
 if [ ! -f "$SHARED_LIB_DIR/common.sh" ]; then
-    SHARED_LIB_DIR="/usr/local/lib/pasarguard-scripts/lib"
+    SHARED_LIB_DIR="/usr/local/lib/manubisguard-node/lib"
     running_from_checkout=false
 fi
 
@@ -19,15 +19,16 @@ fi
 # succeeds, so a partial/failed refresh never leaves a half-updated set and any
 # existing copy is preserved on failure.
 bootstrap_pg_node_shared_libs() {
-    local fetch_repo="PasarGuard/scripts"
-    local bootstrap_dir="/usr/local/lib/pasarguard-scripts/lib"
+    local fetch_repo="ManubisGuard/ManubisGuard-Node"
+    local fetch_branch="${MANUBISGUARD_NODE_BRANCH:-feature/amnezia-wg}"
+    local bootstrap_dir="/usr/local/lib/manubisguard-node/lib"
     local tmp_dir=""
     local shared_lib=""
 
     tmp_dir=$(mktemp -d) || return 1
 
     for shared_lib in $REQUIRED_SHARED_LIBS; do
-        if ! curl -fsSL --connect-timeout 5 "https://github.com/${fetch_repo}/raw/main/lib/${shared_lib}" -o "$tmp_dir/$shared_lib"; then
+        if ! curl -fsSL --connect-timeout 5 "https://raw.githubusercontent.com/${fetch_repo}/${fetch_branch}/scripts/lib/${shared_lib}" -o "$tmp_dir/$shared_lib"; then
             rm -rf "$tmp_dir"
             return 1
         fi
@@ -165,7 +166,7 @@ ENV_FILE="$APP_DIR/.env"
 SSL_CERT_FILE="$DATA_DIR/certs/ssl_cert.pem"
 SSL_KEY_FILE="$DATA_DIR/certs/ssl_key.pem"
 LAST_XRAY_CORES=5
-FETCH_REPO="PasarGuard/scripts"
+FETCH_REPO="ManubisGuard/ManubisGuard-Node"
 NODE_INSTALLER_RAW="https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/feature/amnezia-wg/install-manubisguard-node.sh"
 NODE_SERVICE_REPO="PasarGuard/node-serviced"
 NODE_SERVICE_RELEASE_API="https://api.github.com/repos/${NODE_SERVICE_REPO}/releases/latest"
@@ -1420,10 +1421,10 @@ install_command() {
     fi
     colorized_echo blue "================================"
     colorized_echo magenta " node is set up with the following IP: $NODE_IP and Port: $SERVICE_PORT."
-    colorized_echo magenta "Please use the following Certificate in pasarguard Panel (it's located in ${DATA_DIR}/certs):"
+    colorized_echo magenta "Please use the following Certificate in ManubisGuard Panel (it's located in ${DATA_DIR}/certs):"
     cat "$SSL_CERT_FILE"
     colorized_echo blue "================================"
-    colorized_echo magenta "Next, use the API Key (UUID v4) in pasarguard Panel: "
+    colorized_echo magenta "Next, use the API Key (UUID v4) in ManubisGuard Panel: "
     colorized_echo red "${API_KEY}"
 }
 # Uninstall node containers, configuration, scripts, and optionally data directories.
@@ -2492,7 +2493,7 @@ renew_cert_command() {
     colorized_echo cyan "================================"
     colorized_echo green "✓ Certificate renewal completed!"
     colorized_echo cyan "================================"
-    colorized_echo magenta "Please use the following Certificate in pasarguard Panel (it's located in ${DATA_DIR}/certs):"
+    colorized_echo magenta "Please use the following Certificate in ManubisGuard Panel (it's located in ${DATA_DIR}/certs):"
     cat "$SSL_CERT_FILE"
     colorized_echo cyan "================================"
     restart_command
