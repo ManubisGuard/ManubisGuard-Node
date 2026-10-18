@@ -37,3 +37,28 @@ Updated: 2026-10-18
 - Verify a real panel-to-node connection and confirm traffic/config generation end to end.
 - The container logs a benign warning that its working-directory `.env` file is absent. Docker environment variables are present and the node starts; clean up this warning only if a supported container configuration is identified.
 - Test a clean installation on a fresh host to verify the installer and Compose fixes without relying on packages already present on this server.
+
+
+## Repository audit: installer, CLI bootstrap, CI and image publishing
+
+Updated: 2026-10-18
+
+### Fixed in this audit
+- The installer was looking for shared libraries under `$SCRIPT_DIR/lib`, although this repository stores them under `scripts/lib`. It now checks the actual in-repository path.
+- The installer fallback/bootstrap previously used the PasarGuard shared-library repository and legacy install directory. It now uses ManubisGuard-Node's `scripts/lib` and `/usr/local/lib/manubisguard-node/lib`.
+- The installer now points its shared-library installation source at this repository instead of `PasarGuard/scripts`.
+- The installed CLI fallback had the same wrong raw URL shape (`/lib` instead of `/scripts/lib`). Corrected it to the ManubisGuard repository path.
+- Updated installer output text that still referred to the PasarGuard Panel.
+- CI now checks shell syntax, Docker Compose configuration, all Go packages, and builds the Node.
+- The development Docker workflow no longer tries to publish images under the PasarGuard namespace or requires Docker Hub secrets; it is build-only on main/manual dispatch.
+- The release workflow now publishes release images to `ghcr.io/manubisguard/manubisguard-node` instead of the old PasarGuard image namespace.
+
+### Current verification status
+- GitHub Actions runs were queued/in progress immediately after these commits. Do not mark CI or image publication as passed until the latest commit's workflow runs finish successfully.
+- The running production-like node on host `8017638839-819f55` was verified separately to have a running gRPC listener on TCP 62050; this does not substitute for a clean-host install or panel-to-node integration test.
+
+### Known follow-up work
+- The Go module path remains `github.com/pasarguard/node`; a full module-path migration needs a dedicated audited change across imports, generated code and release artifacts.
+- `Makefile` still calls upstream PasarGuard scripts for Xray/core installation; node-serviced is still sourced from the upstream release repository. These are remaining upstream dependencies, not fixed by this audit.
+- `Dockerfile.wireguard` and `Dockerfile.xray` retain upstream image-source labels and need consistent ManubisGuard metadata if those images remain supported.
+- Need run a clean-host installation, register the node in ManubisGuard Panel, and verify certificate/API-key authentication plus config generation and traffic accounting end to end.
