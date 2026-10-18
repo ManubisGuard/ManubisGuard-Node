@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 set -e
 
+# Keep downloaded helper scripts and shared libraries on the same release branch.
+MANUBISGUARD_NODE_BRANCH="${MANUBISGUARD_NODE_BRANCH:-feature/amnezia-wg}"
+
 SCRIPT_COMMIT_SHA="${SCRIPT_COMMIT_SHA:-__SCRIPT_COMMIT_SHA__}"
 SCRIPT_DIR="${MANUBIS_NODE_SCRIPT_DIR:-$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)}"
 SHARED_LIB_DIR="${SCRIPT_DIR}/scripts/lib"
