@@ -280,15 +280,22 @@ configure_inputs(){
 
 prepare_source(){
   if [[ -d "$APP_DIR/.git" ]]; then
-    if "$OVERRIDE"; then
-      git -C "$APP_DIR" fetch origin "$BRANCH"
-      git -C "$APP_DIR" reset --hard "origin/$BRANCH"
-    else
-      git -C "$APP_DIR" pull --ff-only origin "$BRANCH" || true
-    fi
+    # Existing installs may have an old Compose file with "build:". Never
+    # silently ignore a failed update; refresh Compose from the selected branch
+    # while preserving .env and node data. write_config reapplies selected ports.
+    git -C "$APP_DIR" fetch --depth 1 origin "$BRANCH" ||
+      die "could not fetch branch $BRANCH from $REPO"
+    git -C "$APP_DIR" show "origin/$BRANCH:docker-compose.yml" > "$COMPOSE_FILE" ||
+      die "could not refresh docker-compose.yml from origin/$BRANCH"
   else
-    rm -rf "$APP_DIR"
+    if [[ -e "$APP_DIR" ]]; then
+      die "$APP_DIR exists but is not a Git checkout; move it aside or set MANUBISGUARD_NODE_DIR to a new path"
+    fi
     git clone --depth 1 --branch "$BRANCH" "$REPO" "$APP_DIR"
+  fi
+  [[ -s "$COMPOSE_FILE" ]] || die "docker-compose.yml is missing or empty"
+  if docker compose -f "$COMPOSE_FILE" config 2>/dev/null | grep -Eq '^[[:space:]]+build:'; then
+    die "Compose still defines a local build; refusing to compile on this node"
   fi
 }
 
