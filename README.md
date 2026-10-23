@@ -13,11 +13,22 @@ ManubisGuard Node is the worker node used by ManubisGuard Panel.
 
 ## One-Click Installation
 
-The installer follows the current PasarGuard Node installation flow, adapted for the ManubisGuard fork. It validates the host, prepares Docker safely, asks for node/TLS/protocol/port settings, builds the node, installs the systemd service, and validates the selected service port. The interactive prompts are read from the controlling terminal so the command also works with `curl | sudo bash`.
+The installer follows the PasarGuard Node setup flow, adapted for ManubisGuard. It validates the host, prepares Docker, asks for node/TLS/protocol/port settings, **pulls the prebuilt image from GHCR (it does not build Go/Xray on the node)**, installs the systemd service, and validates the selected service port. The interactive prompts are read from the controlling terminal, so the command also works with `curl | sudo bash`.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/main/install.sh | sudo bash -s -- install
 ```
+
+### Prebuilt image and updates
+
+The installer clones the selected repository branch for its Compose configuration, then runs `docker compose pull` and starts the published image `ghcr.io/manubisguard/manubisguard-node:latest`. The Compose file must not contain a `build:` section. To update the node image later, run:
+
+```bash
+sudo pg-node pull
+sudo pg-node up -d
+```
+
+The `main` branch is the stable install target. Use the one-click commands below after the prebuilt-image change is merged into `main`.
 
 ### Interactive choices
 
