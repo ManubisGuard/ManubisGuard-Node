@@ -346,7 +346,7 @@ RemainAfterExit=yes
 WorkingDirectory=$APP_DIR
 ExecStart=/usr/bin/docker compose -f $COMPOSE_FILE up -d
 ExecStop=/usr/bin/docker compose -f $COMPOSE_FILE down
-ExecReload=/usr/bin/docker compose -f $COMPOSE_FILE up -d --build
+ExecReload=/bin/bash -lc '/usr/bin/docker compose -f "$COMPOSE_FILE" pull && /usr/bin/docker compose -f "$COMPOSE_FILE" up -d'
 TimeoutStartSec=0
 
 [Install]
@@ -386,8 +386,8 @@ install_node(){
   prepare_source
   log "=== 6/11 Environment ==="
   write_config
-  log "=== 7/11 Docker build ==="
-  docker compose -f "$COMPOSE_FILE" build --pull=false
+  log "=== 7/11 Pull prebuilt node image ==="
+  docker compose -f "$COMPOSE_FILE" pull
   log "=== 8/11 Docker start ==="
   docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
   log "=== 9/11 Runtime ==="
