@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RELEASE_TAG="latest"
+RELEASE_TAG="v26.3.27"
 TARGET_OS="linux"
 TARGET_ARCH=""
 
