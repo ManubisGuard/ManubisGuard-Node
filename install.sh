@@ -4,15 +4,17 @@ set -Eeuo pipefail
 REPO="${MANUBISGUARD_NODE_REPO:-https://github.com/ManubisGuard/ManubisGuard-Node.git}"
 BRANCH="${MANUBISGUARD_NODE_BRANCH:-main}"
 APP_NAME="${MANUBISGUARD_NODE_NAME:-pg-node}"
-APP_DIR="${MANUBISGUARD_NODE_DIR:-/opt/manubisguard-node}"
-DATA_DIR="${MANUBISGUARD_NODE_DATA_DIR:-/var/lib/pg-node}"
-ENV_FILE="$APP_DIR/.env"
-COMPOSE_FILE="$APP_DIR/docker-compose.yml"
-CERT_DIR="$DATA_DIR/certs"
-CERT_FILE="$CERT_DIR/ssl_cert.pem"
-KEY_FILE="$CERT_DIR/ssl_key.pem"
-SERVICE_NAME="${APP_NAME}-service"
-SERVICE_UNIT="/etc/systemd/system/$SERVICE_NAME.service"
+# Resolve per-instance paths after parsing --name. The legacy pg-node defaults
+# stay unchanged; named instances (for example AWG) get isolated app/data dirs.
+APP_DIR="${MANUBISGUARD_NODE_DIR:-}"
+DATA_DIR="${MANUBISGUARD_NODE_DATA_DIR:-}"
+ENV_FILE=""
+COMPOSE_FILE=""
+CERT_DIR=""
+CERT_FILE=""
+KEY_FILE=""
+SERVICE_NAME=""
+SERVICE_UNIT=""
 
 AUTO_CONFIRM=false
 OVERRIDE=false
@@ -39,6 +41,7 @@ tty_prompt(){
 run_root(){ [[ "$EUID" -eq 0 ]] || die "run as root"; }
 
 usage(){
+  resolve_paths
 cat <<EOF
 ManubisGuard Node installer
 
@@ -193,7 +196,9 @@ get_ip(){
 }
 
 ensure_dirs(){
-  mkdir -p "$CERT_DIR" "$DATA_DIR/generated" "$APP_DIR"
+  # Do not create APP_DIR before prepare_source: a fresh directory would be
+  # mistaken for an existing non-Git installation and abort the clone.
+  mkdir -p "$CERT_DIR" "$DATA_DIR/generated"
   chmod 700 "$CERT_DIR"
 }
 
@@ -291,6 +296,7 @@ prepare_source(){
     if [[ -e "$APP_DIR" ]]; then
       die "$APP_DIR exists but is not a Git checkout; move it aside or set MANUBISGUARD_NODE_DIR to a new path"
     fi
+    mkdir -p "$(dirname "$APP_DIR")"
     git clone --depth 1 --branch "$BRANCH" "$REPO" "$APP_DIR"
   fi
   [[ -s "$COMPOSE_FILE" ]] || die "docker-compose.yml is missing or empty"
@@ -417,9 +423,34 @@ install_node(){
   printf '\nUse this certificate and API key in ManubisGuard Panel.\n'
 }
 
+resolve_paths(){
+  if [[ -z "$APP_DIR" ]]; then
+    if [[ "$APP_NAME" == "pg-node" ]]; then
+      APP_DIR="/opt/manubisguard-node"
+    else
+      APP_DIR="/opt/manubisguard-node-$APP_NAME"
+    fi
+  fi
+  if [[ -z "$DATA_DIR" ]]; then
+    if [[ "$APP_NAME" == "pg-node" ]]; then
+      DATA_DIR="/var/lib/pg-node"
+    else
+      DATA_DIR="/var/lib/manubisguard-node-$APP_NAME"
+    fi
+  fi
+  ENV_FILE="$APP_DIR/.env"
+  COMPOSE_FILE="$APP_DIR/docker-compose.yml"
+  CERT_DIR="$DATA_DIR/certs"
+  CERT_FILE="$CERT_DIR/ssl_cert.pem"
+  KEY_FILE="$CERT_DIR/ssl_key.pem"
+  SERVICE_NAME="${APP_NAME}-service"
+  SERVICE_UNIT="/etc/systemd/system/$SERVICE_NAME.service"
+}
+
 main(){
   run_root
   parse "$@"
+  resolve_paths
   install_node
 }
 main "$@"
