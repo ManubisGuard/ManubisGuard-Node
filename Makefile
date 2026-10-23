@@ -125,7 +125,7 @@ ifeq ($(UNAME_S),Linux)
 	if [ "$(DISTRO)" = "debian" ] || [ "$(DISTRO)" = "ubuntu" ] || \
 	   [ "$(DISTRO)" = "centos" ] || [ "$(DISTRO)" = "rhel" ] || [ "$(DISTRO)" = "fedora" ] || \
 	   [ "$(DISTRO)" = "arch" ]; then \
-		bash ./scripts/install_core.sh $(XRAY_INSTALL_ARGS); \
+		if [ "$(id -u)" -eq 0 ]; then bash ./scripts/install_core.sh $(XRAY_INSTALL_ARGS); else sudo bash ./scripts/install_core.sh $(XRAY_INSTALL_ARGS); fi; \
 	else \
 		curl -L https://github.com/PasarGuard/scripts/raw/main/install_core.sh | bash -s -- $(XRAY_INSTALL_ARGS); \
 	fi
