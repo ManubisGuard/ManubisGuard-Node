@@ -285,8 +285,8 @@ prepare_source(){
     # while preserving .env and node data. write_config reapplies selected ports.
     git -C "$APP_DIR" fetch --depth 1 origin "$BRANCH" ||
       die "could not fetch branch $BRANCH from $REPO"
-    git -C "$APP_DIR" show "origin/$BRANCH:docker-compose.yml" > "$COMPOSE_FILE" ||
-      die "could not refresh docker-compose.yml from origin/$BRANCH"
+    git -C "$APP_DIR" show "FETCH_HEAD:docker-compose.yml" > "$COMPOSE_FILE" ||
+      die "could not refresh docker-compose.yml from fetched branch $BRANCH"
   else
     if [[ -e "$APP_DIR" ]]; then
       die "$APP_DIR exists but is not a Git checkout; move it aside or set MANUBISGUARD_NODE_DIR to a new path"
