@@ -41,6 +41,7 @@ tty_prompt(){
 run_root(){ [[ "$EUID" -eq 0 ]] || die "run as root"; }
 
 usage(){
+  resolve_paths
 cat <<EOF
 ManubisGuard Node installer
 
