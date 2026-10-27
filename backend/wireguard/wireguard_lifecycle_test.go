@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/backend"
 	"github.com/pasarguard/node/common"
 	nodeconfig "github.com/pasarguard/node/config"
 	"github.com/vishvananda/netlink"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 func mustNewWireGuardConfigForLifecycle(t *testing.T, raw string) *Config {

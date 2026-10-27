@@ -1,20 +1,37 @@
 package wireguard
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
 	"syscall"
 
+	wgctrl "github.com/advanced-wg/awgctrl-go"
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/vishvananda/netlink"
-	"golang.zx2c4.com/wireguard/wgctrl"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type wgClient interface {
 	ConfigureDevice(name string, cfg wgtypes.Config) error
 	Device(name string) (*wgtypes.Device, error)
 	Close() error
+}
+
+type awgClient struct {
+	client *wgctrl.Client
+}
+
+func (c *awgClient) ConfigureDevice(name string, cfg wgtypes.Config) error {
+	return c.client.ConfigureDevice(context.Background(), name, cfg)
+}
+
+func (c *awgClient) Device(name string) (*wgtypes.Device, error) {
+	return c.client.Device(context.Background(), name)
+}
+
+func (c *awgClient) Close() error {
+	return c.client.Close()
 }
 
 type netlinkOps interface {
@@ -78,6 +95,8 @@ type Manager struct {
 	iFaceName string
 	nl        netlinkOps
 	configure configureDeviceFunc
+	amneziaWG bool
+	awgConfig wgtypes.Config
 	mu        sync.RWMutex
 }
 
@@ -89,10 +108,33 @@ func NewManager(interfaceName string) (*Manager, error) {
 	}
 
 	return &Manager{
-		client:    client,
+		client:    &awgClient{client: client},
 		iFaceName: interfaceName,
 		nl:        defaultNetlinkOps{},
 		configure: defaultConfigureDevice,
+	}, nil
+}
+
+// NewAmneziaManager creates an AmneziaWG manager with the supplied interface profile.
+func NewAmneziaManager(interfaceName string, config *Config) (*Manager, error) {
+	if config == nil || !config.AmneziaWG {
+		return nil, fmt.Errorf("AmneziaWG manager requires an AmneziaWG configuration")
+	}
+	awgConfig, err := buildAmneziaDeviceConfig(config)
+	if err != nil {
+		return nil, err
+	}
+	client, err := wgctrl.New()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create AmneziaWG control client: %w", err)
+	}
+	return &Manager{
+		client:    &awgClient{client: client},
+		iFaceName: interfaceName,
+		nl:        defaultNetlinkOps{},
+		configure: defaultConfigureDevice,
+		amneziaWG: true,
+		awgConfig: awgConfig,
 	}, nil
 }
 
@@ -124,6 +166,13 @@ func buildInitialWGConfig(privateKey wgtypes.Key, listenPort int, peers []wgtype
 	return config
 }
 
+func mergeAmneziaDeviceConfig(dst *wgtypes.Config, src wgtypes.Config) {
+	dst.Jc, dst.Jmin, dst.Jmax = src.Jc, src.Jmin, src.Jmax
+	dst.S1, dst.S2, dst.S3, dst.S4 = src.S1, src.S2, src.S3, src.S4
+	dst.H1, dst.H2, dst.H3, dst.H4 = src.H1, src.H2, src.H3, src.H4
+	dst.I1, dst.I2, dst.I3, dst.I4, dst.I5 = src.I1, src.I2, src.I3, src.I4, src.I5
+}
+
 // InitializeWithPeers sets up the WireGuard interface with initial configuration and optional full peer snapshot.
 func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, serverIPs []string, peers []wgtypes.PeerConfig) error {
 	m.mu.Lock()
@@ -150,9 +199,17 @@ func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 		return fmt.Errorf("failed to cleanup existing interface: %w", err)
 	}
 
-	// Create WireGuard interface
-	link := &netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}}
+	// Create the matching kernel link type. A plain WireGuard link cannot process AWG-obfuscated packets.
+	var link netlink.Link
+	if m.amneziaWG {
+		link = &netlink.GenericLink{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}, LinkType: "amneziawg"}
+	} else {
+		link = &netlink.Wireguard{LinkAttrs: netlink.LinkAttrs{Name: m.iFaceName}}
+	}
 	if err := nl.LinkAdd(link); err != nil {
+		if m.amneziaWG {
+			return fmt.Errorf("failed to create AmneziaWG interface %q; ensure the host kernel has the AmneziaWG module installed and loaded (modprobe amneziawg): %w", m.iFaceName, err)
+		}
 		return fmt.Errorf("failed to add link: %w", wrapPermissionDeniedError("creating wireguard interface", err))
 	}
 	cleanupOnError := true
@@ -164,6 +221,9 @@ func (m *Manager) InitializeWithPeers(privateKey wgtypes.Key, listenPort int, se
 
 	// Configure WireGuard (single call for base settings + optional peers snapshot).
 	config := buildInitialWGConfig(privateKey, listenPort, peers)
+	if m.amneziaWG {
+		mergeAmneziaDeviceConfig(&config, m.awgConfig)
+	}
 
 	if err := configure(m.client, m.iFaceName, config); err != nil {
 		return fmt.Errorf("failed to configure device: %w", wrapPermissionDeniedError("configuring wireguard device", err))
@@ -234,6 +294,9 @@ func (m *Manager) ApplyConfig(config wgtypes.Config) error {
 	}
 
 	configure := m.getConfigureDevice()
+	if m.amneziaWG {
+		mergeAmneziaDeviceConfig(&config, m.awgConfig)
+	}
 	return configure(m.client, m.iFaceName, config)
 }
 

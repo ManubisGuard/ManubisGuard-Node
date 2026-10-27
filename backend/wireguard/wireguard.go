@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/config"
 	"github.com/pasarguard/node/pkg/stats"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 type newManagerFunc func(interfaceName string) (*Manager, error)
@@ -112,7 +112,13 @@ func (wg *WireGuard) ensureRunningWithManagerLocked() error {
 
 // New creates a new WireGuard backend instance
 func New(cfg *config.Config, wgConfig *Config, users []*common.User) (*WireGuard, error) {
-	return newWithManagerFactory(cfg, wgConfig, users, NewManager)
+	managerFactory := NewManager
+	if wgConfig != nil && wgConfig.AmneziaWG {
+		managerFactory = func(interfaceName string) (*Manager, error) {
+			return NewAmneziaManager(interfaceName, wgConfig)
+		}
+	}
+	return newWithManagerFactory(cfg, wgConfig, users, managerFactory)
 }
 
 // newWithManagerFactory is an internal constructor seam for tests and controlled startup injection.
@@ -170,6 +176,7 @@ func newWithManagerFactory(cfg *config.Config, wgConfig *Config, users []*common
 	}
 	psk, _ := wgConfig.GetPreSharedKey()
 	startupPeerConfigs, appliedKeys := buildTargetPeerConfigs(startupDiff.TargetPeers, psk)
+	startupPeerConfigs = setPeerAdvancedSecurity(startupPeerConfigs, wgConfig.AmneziaWG)
 
 	manager, err := wg.newManager(wgConfig.InterfaceName)
 	if err != nil {
@@ -259,6 +266,7 @@ func (wg *WireGuard) restartLocked() error {
 	if err != nil {
 		return fmt.Errorf("failed to build restart peer configs: %w", err)
 	}
+	peerConfigs = setPeerAdvancedSecurity(peerConfigs, cfg.AmneziaWG)
 
 	wg.mu.Lock()
 	if err := wg.ensureRunningWithManagerLocked(); err != nil {

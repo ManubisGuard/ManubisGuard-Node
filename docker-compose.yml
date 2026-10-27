@@ -1,14 +1,14 @@
 services:
   node:
-    image: ghcr.io/manubisguard/manubisguard-node:latest
+    image: ghcr.io/manubisguard/manubisguard-node:v0.6.0
     pull_policy: always
     restart: always
     env_file: .env
     network_mode: host
     cap_add:
       - NET_ADMIN
-    # WireGuard in this image uses the Linux kernel interface.
-    # The host must have WireGuard kernel support available (for example: modprobe wireguard).
+    # WireGuard and AmneziaWG use host kernel interfaces. install.sh installs the pinned
+    # AmneziaWG 2.x DKMS module and configures it to load at boot.
 
     environment:
       SERVICE_PORT: 62050

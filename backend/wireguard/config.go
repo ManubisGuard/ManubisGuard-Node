@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 )
 
 // Config represents the WireGuard configuration
@@ -19,6 +19,23 @@ type Config struct {
 	ListenPort    int            `json:"listen_port"`
 	Address       []string       `json:"address"`
 	Latency       *LatencyConfig `json:"latency,omitempty"`
+	AmneziaWG     bool           `json:"amneziawg,omitempty"`
+	Jc            *int           `json:"jc,omitempty"`
+	Jmin          *int           `json:"jmin,omitempty"`
+	Jmax          *int           `json:"jmax,omitempty"`
+	S1            *int           `json:"s1,omitempty"`
+	S2            *int           `json:"s2,omitempty"`
+	S3            *int           `json:"s3,omitempty"`
+	S4            *int           `json:"s4,omitempty"`
+	H1            string         `json:"h1,omitempty"`
+	H2            string         `json:"h2,omitempty"`
+	H3            string         `json:"h3,omitempty"`
+	H4            string         `json:"h4,omitempty"`
+	I1            string         `json:"i1,omitempty"`
+	I2            string         `json:"i2,omitempty"`
+	I3            string         `json:"i3,omitempty"`
+	I4            string         `json:"i4,omitempty"`
+	I5            string         `json:"i5,omitempty"`
 
 	privateKeyValue   wgtypes.Key
 	privateKeySet     bool
@@ -78,7 +95,45 @@ func NewConfig(config string) (*Config, error) {
 		wgConfig.Latency.TimeoutSeconds = 5
 	}
 
+	if wgConfig.AmneziaWG {
+		if _, err := buildAmneziaDeviceConfig(&wgConfig); err != nil {
+			return nil, err
+		}
+	}
+
 	return &wgConfig, nil
+}
+
+func stringPointer(value string) *string { return &value }
+
+func optionalStringPointer(value string) *string {
+	if strings.TrimSpace(value) == "" {
+		return nil
+	}
+	return stringPointer(value)
+}
+
+func buildAmneziaDeviceConfig(c *Config) (wgtypes.Config, error) {
+	if c == nil || !c.AmneziaWG {
+		return wgtypes.Config{}, errors.New("AmneziaWG configuration is missing")
+	}
+	if c.Jc == nil || c.Jmin == nil || c.Jmax == nil || c.S1 == nil || c.S2 == nil || c.S3 == nil || c.S4 == nil {
+		return wgtypes.Config{}, errors.New("AmneziaWG requires Jc, Jmin, Jmax, and S1-S4 parameters")
+	}
+	if c.H1 == "" || c.H2 == "" || c.H3 == "" || c.H4 == "" {
+		return wgtypes.Config{}, errors.New("AmneziaWG requires H1-H4 headers")
+	}
+	awgConfig := wgtypes.Config{
+		Jc: c.Jc, Jmin: c.Jmin, Jmax: c.Jmax,
+		S1: c.S1, S2: c.S2, S3: c.S3, S4: c.S4,
+		H1: stringPointer(c.H1), H2: stringPointer(c.H2), H3: stringPointer(c.H3), H4: stringPointer(c.H4),
+		I1: optionalStringPointer(c.I1), I2: optionalStringPointer(c.I2), I3: optionalStringPointer(c.I3),
+		I4: optionalStringPointer(c.I4), I5: optionalStringPointer(c.I5),
+	}
+	if err := awgConfig.Validate(); err != nil {
+		return wgtypes.Config{}, fmt.Errorf("invalid AmneziaWG profile: %w", err)
+	}
+	return awgConfig, nil
 }
 
 // InterfaceNetworks returns CIDR prefixes parsed from the node's core `address` list.

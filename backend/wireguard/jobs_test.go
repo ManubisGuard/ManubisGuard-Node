@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/config"
 	pkgstats "github.com/pasarguard/node/pkg/stats"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 func TestUpdateConnectedPeersSkipsStaleHandshakePeers(t *testing.T) {

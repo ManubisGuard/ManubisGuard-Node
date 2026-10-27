@@ -8,8 +8,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 var (
@@ -31,6 +31,13 @@ func buildAddConfig(publicKey wgtypes.Key, allowedIPs []net.IPNet, presharedKey 
 
 func buildRemoveConfig(publicKey wgtypes.Key) wgtypes.PeerConfig {
 	return wgtypes.PeerConfig{PublicKey: publicKey, Remove: true}
+}
+
+func setPeerAdvancedSecurity(peers []wgtypes.PeerConfig, enabled bool) []wgtypes.PeerConfig {
+	for i := range peers {
+		peers[i].AdvancedSecurity = enabled
+	}
+	return peers
 }
 
 type DesiredPeer struct {
@@ -110,6 +117,7 @@ func (wg *WireGuard) buildSyncDiff(
 		}
 	}
 
+	peerConfigs = setPeerAdvancedSecurity(peerConfigs, wg.config != nil && wg.config.AmneziaWG)
 	removeKeys, removeConfigs := buildRemoveConfigsForPeers(removeSet)
 
 	peerConfigs = append(peerConfigs, removeConfigs...)

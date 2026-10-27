@@ -27,6 +27,7 @@ KEY_PATH=""
 SELF_SIGNED=false
 SAN_ENTRIES=""
 NODE_IP=""
+AMNEZIAWG_MODULE_TAG="${MANUBISGUARD_AMNEZIAWG_MODULE_TAG:-v1.0.20260929+awg}"
 
 log(){ printf '[manubisguard-node] %s\n' "$*"; }
 die(){ printf '[manubisguard-node] ERROR: %s\n' "$*" >&2; exit 1; }
@@ -179,6 +180,64 @@ EOF
   systemctl enable --now docker
 }
 
+install_amneziawg_module(){
+  local expected_version="${AMNEZIAWG_MODULE_TAG#v}"
+  local kernel="$(uname -r)" arch="$(dpkg --print-architecture)"
+  local installed_version=""
+  installed_version="$(modinfo -F version amneziawg 2>/dev/null || true)"
+
+  local dkms_status="$(dkms status 2>/dev/null || true)"
+  if [[ "$installed_version" == "$expected_version" && "$dkms_status" == *"amneziawg/$expected_version, $kernel,"* && "$dkms_status" == *"installed"* ]]; then
+    log "AmneziaWG kernel module $installed_version is already installed through DKMS for kernel $kernel."
+  else
+    log "Preparing kernel headers, DKMS, and build tools for AmneziaWG $expected_version."
+    local packages=(build-essential dkms git "linux-headers-$kernel")
+    if [[ "${ID:-}" == "ubuntu" ]]; then
+      if [[ "$kernel" == *hwe* ]]; then
+        packages+=("linux-headers-generic-hwe-${VERSION_ID%.*}")
+      else
+        packages+=(linux-headers-generic)
+      fi
+    else
+      case "$arch" in
+        amd64) packages+=(linux-headers-amd64) ;;
+        arm64) packages+=(linux-headers-arm64) ;;
+        *) die "Automatic AmneziaWG DKMS installation is not configured for Debian architecture $arch" ;;
+      esac
+    fi
+    DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}" ||
+      die "Could not install build tools/kernel headers for running kernel $kernel. Install matching headers and rerun the installer; do not reboot into a different kernel as a workaround."
+
+    local source_dir
+    source_dir="$(mktemp -d /tmp/manubisguard-awg-module.XXXXXX)"
+    log "Fetching pinned AmneziaWG kernel module source: $AMNEZIAWG_MODULE_TAG"
+    git clone --depth 1 --branch "$AMNEZIAWG_MODULE_TAG" \
+      https://github.com/Advanced-WG/amneziawg-linux-kernel-module-awg.git "$source_dir/source" ||
+      die "Could not fetch AmneziaWG module tag $AMNEZIAWG_MODULE_TAG"
+    make -C "$source_dir/source/src" dkms-install ||
+      die "DKMS source preparation failed for AmneziaWG $expected_version"
+    dkms install "amneziawg/$expected_version" ||
+      die "DKMS could not build AmneziaWG $expected_version for kernel $kernel. Check /var/lib/dkms/amneziawg/$expected_version/build/make.log"
+    rm -rf "$source_dir"
+    depmod -a "$kernel"
+  fi
+
+  modprobe amneziawg || die "Could not load AmneziaWG kernel module. If Secure Boot is enabled, enroll the DKMS signing key (MOK) and reboot, then rerun the installer."
+  installed_version="$(modinfo -F version amneziawg 2>/dev/null || true)"
+  [[ "$installed_version" == "$expected_version" ]] ||
+    die "Loaded AmneziaWG module version '$installed_version'; expected '$expected_version'"
+
+  install -d -m 755 /etc/modules-load.d
+  printf 'amneziawg\n' >/etc/modules-load.d/amneziawg.conf
+
+  # Exercise the exact link kind the node runtime needs, then remove the probe.
+  local probe="pgawg$RANDOM"
+  ip link add dev "$probe" type amneziawg ||
+    die "The loaded kernel module does not expose the amneziawg link type required by Node v0.6.0"
+  ip link delete dev "$probe"
+  log "AmneziaWG module $installed_version loaded; link-type preflight passed and module will load at boot."
+}
+
 install_packages(){
   . /etc/os-release
   [[ "${ID:-}" == "ubuntu" || "${ID:-}" == "debian" ]] || die "Ubuntu/Debian is required"
@@ -186,6 +245,7 @@ install_packages(){
   apt-get update
   DEBIAN_FRONTEND=noninteractive apt-get install -y git curl ca-certificates openssl wireguard-tools python3 jq uuid-runtime iproute2 lsof
   modprobe wireguard 2>/dev/null || true
+  install_amneziawg_module
   install_docker
 }
 
@@ -420,7 +480,11 @@ install_node(){
   printf 'Certificate : %s\n' "$CERT_FILE"
   printf 'API Key     : %s\n' "$API_KEY"
   printf 'Env         : %s\n' "$ENV_FILE"
-  printf '\nUse this certificate and API key in ManubisGuard Panel.\n'
+  printf '\nCopy the certificate below into ManubisGuard Panel > Nodes > Certificate.\n'
+  printf '%s\n' '----- BEGIN NODE TLS CERTIFICATE (public certificate only) -----'
+  cat "$CERT_FILE"
+  printf '%s\n' '----- END NODE TLS CERTIFICATE -----'
+  printf '\nPrivate key is intentionally not printed.\n'
 }
 
 resolve_paths(){

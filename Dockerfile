@@ -16,7 +16,7 @@ RUN GOOS=${TARGETOS} GOARCH=${TARGETARCH} make install_xray
 
 FROM alpine:latest
 
-LABEL org.opencontainers.image.source="https://github.com/arsamnikzaad/Pasarguard-node-AWG"
+LABEL org.opencontainers.image.source="https://github.com/ManubisGuard/ManubisGuard-Node"
 
 RUN apk update && apk add --no-cache wireguard-tools nftables iproute2 procps
 

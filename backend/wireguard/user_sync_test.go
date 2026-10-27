@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/pkg/stats"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 func TestSyncUserRejectsNilUser(t *testing.T) {

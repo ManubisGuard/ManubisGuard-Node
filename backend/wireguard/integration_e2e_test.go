@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/advanced-wg/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/config"
-	"golang.zx2c4.com/wireguard/wgctrl/wgtypes"
 )
 
 const (

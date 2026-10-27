@@ -21,7 +21,7 @@ curl -fsSL https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/main
 
 ### Prebuilt image and updates
 
-The installer clones the selected repository branch for its Compose configuration, then runs `docker compose pull` and starts the published image `ghcr.io/manubisguard/manubisguard-node:latest`. The Compose file must not contain a `build:` section. To update the node image later, run:
+The installer clones the selected repository branch for its Compose configuration, installs the pinned AmneziaWG 2.x kernel module with DKMS (including matching kernel headers and build prerequisites), verifies the `amneziawg` link type, then pulls the pinned image `ghcr.io/manubisguard/manubisguard-node:v0.6.0`. The kernel module lives on the host because the node container uses `network_mode: host`; it cannot be supplied by the container image alone. The Compose file must not contain a `build:` section. To update the node image later, run:
 
 ```bash
 sudo pg-node pull
@@ -43,7 +43,7 @@ During a normal install you can choose:
 - `API_PORT`, default `62051`
 - systemd service startup
 
-The installer checks that selected ports are free before deployment.
+The installer checks that selected ports are free before deployment. At the end, it prints the public TLS certificate PEM with `cat` so it can be copied directly into the Panel node form. The private key is never printed. The pinned kernel module source is `Advanced-WG/amneziawg-linux-kernel-module-awg` tag `v1.0.20260929+awg`; DKMS rebuilds it when compatible kernel headers are installed for future kernel updates. If Secure Boot blocks module loading, the installer stops and explains that the DKMS signing key must be enrolled.
 
 ### Unattended installation
 
