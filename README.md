@@ -1,4 +1,4 @@
-<!-- PasarGuard Node | Bilingual documentation -->
+<!-- PasarGuard Pro Node | Bilingual documentation -->
 
 <p align="center">
   <a href="https://github.com/ManubisGuard/ManubisGuard-Node">
@@ -10,7 +10,7 @@
   <img src="https://img.shields.io/badge/AmneziaWG-2.x-blue?style=flat-square" alt="AmneziaWG 2.x">
 </p>
 
-<h1 align="center">PasarGuard Node</h1>
+<h1 align="center">PasarGuard Pro Node</h1>
 <p align="center">A secure, containerized worker node for PasarGuard Pro</p>
 
 <p align="center">
@@ -28,7 +28,7 @@
 
 ## Overview
 
-**PasarGuard Node** is the worker component managed by PasarGuard Pro Panel. It receives node configuration from the Panel and runs the supported networking runtimes on the host. The node is containerized, while networking features that depend on the Linux kernel must be installed on the host.
+**PasarGuard Pro Node** is the worker component managed by the PasarGuard Pro Panel. It receives node configuration from the Panel and runs the supported networking runtimes on the host. The node is containerized, while networking features that depend on the Linux kernel must be installed on the host.
 
 ### Key capabilities
 
@@ -225,7 +225,7 @@ Please report vulnerabilities privately to the repository maintainers when possi
 
 ## معرفی
 
-**PasarGuard Node** بخش اجرایی و Worker پلتفرم PasarGuard Pro است. پنل تنظیمات نود را ارسال می‌کند و نود Runtimeهای شبکه را روی میزبان اجرا می‌کند. خود برنامه داخل Container اجرا می‌شود، اما قابلیت‌هایی که به Kernel لینوکس وابسته‌اند باید روی Host آماده شوند.
+**PasarGuard Pro Node** بخش اجرایی و Worker پلتفرم PasarGuard Pro است. پنل تنظیمات نود را ارسال می‌کند و نود Runtimeهای شبکه را روی میزبان اجرا می‌کند. خود برنامه داخل Container اجرا می‌شود، اما قابلیت‌هایی که به Kernel لینوکس وابسته‌اند باید روی Host آماده شوند.
 
 ### قابلیت‌های اصلی
 
