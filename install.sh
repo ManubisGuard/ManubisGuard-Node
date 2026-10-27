@@ -194,7 +194,7 @@ install_amneziawg_module(){
     local packages=(build-essential dkms git "linux-headers-$kernel")
     if [[ "${ID:-}" == "ubuntu" ]]; then
       if [[ "$kernel" == *hwe* ]]; then
-        packages+=("linux-headers-generic-hwe-${VERSION_ID%.*}")
+        packages+=("linux-headers-generic-hwe-${VERSION_ID}")
       else
         packages+=(linux-headers-generic)
       fi
