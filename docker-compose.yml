@@ -1,6 +1,6 @@
 services:
   node:
-    image: ghcr.io/manubisguard/manubisguard-node:v0.6.0
+    image: ghcr.io/manubisguard/manubisguard-node:latest
     pull_policy: always
     restart: always
     env_file: .env

@@ -23,7 +23,7 @@ assert_contains "$INSTALLER" '/etc/modules-load.d/amneziawg.conf'
 assert_contains "$INSTALLER" 'type amneziawg'
 assert_contains "$INSTALLER" 'cat "$CERT_FILE"'
 assert_contains "$INSTALLER" 'Private key is intentionally not printed.'
-assert_contains "$COMPOSE" 'ghcr.io/manubisguard/manubisguard-node:v0.6.0'
+assert_contains "$COMPOSE" 'ghcr.io/manubisguard/manubisguard-node:latest'
 assert_contains "$README" 'v1.0.20260929+awg'
 if grep -Fq 'cat "$KEY_FILE"' "$INSTALLER"; then
   echo 'installer must never print the private TLS key' >&2

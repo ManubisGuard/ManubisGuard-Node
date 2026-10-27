@@ -21,7 +21,7 @@ curl -fsSL https://raw.githubusercontent.com/ManubisGuard/ManubisGuard-Node/main
 
 ### Prebuilt image and updates
 
-The installer clones the selected repository branch for its Compose configuration, installs the pinned AmneziaWG 2.x kernel module with DKMS (including matching kernel headers and build prerequisites), verifies the `amneziawg` link type, then pulls the pinned image `ghcr.io/manubisguard/manubisguard-node:v0.6.0`. The kernel module lives on the host because the node container uses `network_mode: host`; it cannot be supplied by the container image alone. The Compose file must not contain a `build:` section. To update the node image later, run:
+The installer clones the selected repository branch for its Compose configuration, installs the pinned AmneziaWG 2.x kernel module with DKMS (including matching kernel headers and build prerequisites), verifies the `amneziawg` link type, then pulls the published image `ghcr.io/manubisguard/manubisguard-node:latest`. The kernel module lives on the host because the node container uses `network_mode: host`; it cannot be supplied by the container image alone. The Compose file must not contain a `build:` section. To update the node image later, run:
 
 ```bash
 sudo pg-node pull
