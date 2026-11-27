@@ -26,3 +26,18 @@ func TestAsRoutingBackend(t *testing.T) {
 		t.Fatalf("routing backend: unexpected err %v", err)
 	}
 }
+
+// A multi-core node must expose Xray routing even when Backend() is composite.
+func TestAsRoutingBackendFromComposite(t *testing.T) {
+	routingCore := routingFake{}
+	composite := backend.NewComposite([]backend.Backend{
+		nonRoutingBackend{}, routingCore,
+	})
+	if _, err := asRoutingBackend(composite); err != nil {
+		t.Fatalf("composite Xray routing should be accessible: %v", err)
+	}
+	wgOnly := backend.NewComposite([]backend.Backend{nonRoutingBackend{}})
+	if _, err := asRoutingBackend(wgOnly); status.Code(err) != codes.Unimplemented {
+		t.Fatalf("wireguard-only composite should not offer routing: %v", err)
+	}
+}

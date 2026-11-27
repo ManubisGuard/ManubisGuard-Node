@@ -36,6 +36,18 @@ func (c *Composite) Started() bool {
 	return false
 }
 
+// RoutingBackend returns the Xray-specific routing capability, if present.
+// A composite is not itself a routing service: WireGuard-only nodes must
+// continue reporting Unimplemented, while mixed nodes can route through Xray.
+func (c *Composite) RoutingBackend() RoutingBackend {
+	for _, b := range c.backends {
+		if routing, ok := b.(RoutingBackend); ok {
+			return routing
+		}
+	}
+	return nil
+}
+
 // Version joins the per-backend versions so the panel's core_version field
 // reflects everything running on the node.
 func (c *Composite) Version() string {

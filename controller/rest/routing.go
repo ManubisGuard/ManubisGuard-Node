@@ -14,6 +14,11 @@ import (
 // for backends (e.g. WireGuard) that do not support xray routing. Kept as a free
 // function so the capability gate is unit-testable without a live server.
 func asRoutingBackend(b backend.Backend) (backend.RoutingBackend, error) {
+	if composite, ok := b.(*backend.Composite); ok {
+		if routing := composite.RoutingBackend(); routing != nil {
+			return routing, nil
+		}
+	}
 	rb, ok := b.(backend.RoutingBackend)
 	if !ok {
 		return nil, status.Error(codes.Unimplemented, "routing is only supported by the xray backend")
