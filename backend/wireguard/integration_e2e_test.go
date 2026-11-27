@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/awg-go/awgctrl-go/wgtypes"
 	"github.com/pasarguard/node/common"
 	"github.com/pasarguard/node/config"
-	"github.com/awg-go/awgctrl-go/wgtypes"
 )
 
 const (
@@ -88,6 +88,19 @@ func mustHaveCommands(t *testing.T, names ...string) {
 func runCommand(t *testing.T, name string, args ...string) string {
 	t.Helper()
 	cmd := exec.Command(name, args...)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("command failed: %s %s\nerror: %v\noutput: %s", name, strings.Join(args, " "), err, string(output))
+	}
+	return string(output)
+}
+
+// Stream private keys through stdin: no world-readable temp file in /tmp,
+// and the namespace process reads its own /dev/stdin safely.
+func runCommandWithStdin(t *testing.T, data, name string, args ...string) string {
+	t.Helper()
+	cmd := exec.Command(name, args...)
+	cmd.Stdin = strings.NewReader(data)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		t.Fatalf("command failed: %s %s\nerror: %v\noutput: %s", name, strings.Join(args, " "), err, string(output))
@@ -297,30 +310,12 @@ func configureNamespaceWGClient(
 ) {
 	t.Helper()
 
-	keyFile, err := os.CreateTemp("", "wg-client-key-*")
-	if err != nil {
-		t.Fatalf("failed to create temp key file: %v", err)
-	}
-	if _, err = keyFile.WriteString(clientPrivateKey + "\n"); err != nil {
-		_ = keyFile.Close()
-		t.Fatalf("failed to write temp key file: %v", err)
-	}
-	if err = keyFile.Close(); err != nil {
-		t.Fatalf("failed to close temp key file: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = os.Remove(keyFile.Name())
-	})
-
 	runCommand(t, "ip", "netns", "exec", ns.name, "ip", "link", "add", "dev", iface, "type", "wireguard")
 	runCommand(t, "ip", "netns", "exec", ns.name, "ip", "address", "add", clientWGIP+"/32", "dev", iface)
 
 	endpoint := fmt.Sprintf("%s:%d", ns.hostTransitIP, serverEndpointPort)
-	runCommand(
-		t,
-		"ip", "netns", "exec", ns.name,
-		"wg", "set", iface,
-		"private-key", keyFile.Name(),
+	runCommandWithStdin(t, clientPrivateKey+"\n", "ip", "netns", "exec", ns.name, "wg", "set", iface,
+		"private-key", "/dev/stdin",
 		"peer", serverPublicKey,
 		"endpoint", endpoint,
 		"allowed-ips", serverWGIP+"/32",
@@ -344,32 +339,14 @@ func configureNamespaceWGClientDualStack(
 ) {
 	t.Helper()
 
-	keyFile, err := os.CreateTemp("", "wg-client-key-*")
-	if err != nil {
-		t.Fatalf("failed to create temp key file: %v", err)
-	}
-	if _, err = keyFile.WriteString(clientPrivateKey + "\n"); err != nil {
-		_ = keyFile.Close()
-		t.Fatalf("failed to write temp key file: %v", err)
-	}
-	if err = keyFile.Close(); err != nil {
-		t.Fatalf("failed to close temp key file: %v", err)
-	}
-	t.Cleanup(func() {
-		_ = os.Remove(keyFile.Name())
-	})
-
 	runCommand(t, "ip", "netns", "exec", ns.name, "ip", "link", "add", "dev", iface, "type", "wireguard")
 	runCommand(t, "ip", "netns", "exec", ns.name, "ip", "address", "add", clientWGIPv4+"/32", "dev", iface)
 	runCommand(t, "ip", "netns", "exec", ns.name, "ip", "address", "add", clientWGIPv6+"/128", "dev", iface)
 
 	endpoint := fmt.Sprintf("%s:%d", ns.hostTransitIP, serverEndpointPort)
 	allowedIPs := fmt.Sprintf("%s/32,%s/128", serverWGIPv4, serverWGIPv6)
-	runCommand(
-		t,
-		"ip", "netns", "exec", ns.name,
-		"wg", "set", iface,
-		"private-key", keyFile.Name(),
+	runCommandWithStdin(t, clientPrivateKey+"\n", "ip", "netns", "exec", ns.name, "wg", "set", iface,
+		"private-key", "/dev/stdin",
 		"peer", serverPublicKey,
 		"endpoint", endpoint,
 		"allowed-ips", allowedIPs,
