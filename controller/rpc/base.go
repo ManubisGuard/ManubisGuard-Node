@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"context"
-	"log"
 
 	"github.com/pasarguard/node/common"
 	"google.golang.org/grpc/codes"
@@ -26,10 +25,6 @@ func (s *Service) Start(ctx context.Context, data *common.Backend) (*common.Base
 	// An additive Start brings up one more core on a node that is already
 	// serving. A plain Start resets the node to the cores this connection brings.
 	additive := running && data.GetAdditive()
-	if running && !additive {
-		log.Println("New connection from ", clientIP, " core control access was taken away from previous client.")
-		s.Disconnect()
-	}
 
 	if err := s.StartBackend(ctx, data); err != nil {
 		return nil, err

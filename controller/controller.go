@@ -150,7 +150,6 @@ func (c *Controller) StartBackend(ctx context.Context, backendCfg *common.Backen
 	// Retiring happens *before* the new core launches either way: a replacement
 	// reuses the same listen port and on-disk state, so overlapping the two
 	// makes the new one fail to bind.
-	c.retireFor(backendCfg)
 
 	var newBackend backend.Backend
 
@@ -161,6 +160,7 @@ func (c *Controller) StartBackend(ctx context.Context, backendCfg *common.Backen
 			return err
 		}
 
+		c.retireFor(backendCfg)
 		newBackend, err = xray.New(
 			ctx,
 			config,
@@ -178,6 +178,7 @@ func (c *Controller) StartBackend(ctx context.Context, backendCfg *common.Backen
 		if err != nil {
 			return err
 		}
+		c.retireFor(backendCfg)
 		newBackend, err = wireguard.New(c.cfg, config, backendCfg.GetUsers())
 		if err != nil {
 			return err

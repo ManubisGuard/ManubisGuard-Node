@@ -152,3 +152,13 @@ func (f *fakeBackend) GetUserOnlineStats(context.Context, string) (*common.Onlin
 func (f *fakeBackend) GetUserOnlineIpListStats(context.Context, string) (*common.StatsOnlineIpListResponse, error) {
 	return nil, nil
 }
+
+func TestInvalidStartPreservesRunningCores(t *testing.T) {
+	c := New(nil)
+	keep := &fakeBackend{}
+	c.backends[backendKey{typ: common.BackendType_WIREGUARD, instance: "keep"}] = keep
+	err := c.StartBackend(context.Background(), &common.Backend{Type: common.BackendType_WIREGUARD, Config: "invalid json"})
+	if err == nil || keep.stopped || len(c.backends) != 1 {
+		t.Fatal("invalid configuration must not retire existing cores")
+	}
+}

@@ -1,7 +1,6 @@
 package rest
 
 import (
-	"log"
 	"net/http"
 
 	"github.com/pasarguard/node/common"
@@ -37,10 +36,6 @@ func (s *Service) Start(w http.ResponseWriter, r *http.Request) {
 	// An additive Start brings up one more core on a node that is already
 	// serving. A plain Start resets the node to the cores this connection brings.
 	additive := running && data.GetAdditive()
-	if running && !additive {
-		log.Println("New connection from ", ip, " core control access was taken away from previous client.")
-		s.Disconnect()
-	}
 
 	if err := s.StartBackend(r.Context(), data); err != nil {
 		http.Error(w, err.Error(), http.StatusServiceUnavailable)
