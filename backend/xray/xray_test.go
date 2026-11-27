@@ -2,6 +2,8 @@ package xray
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"testing"
@@ -21,6 +23,39 @@ var (
 	assetsPath     = "/usr/local/share/xray"
 	configPath     = "../../generated/"
 )
+
+// Protect the test fixture against accidental Xray 2022 key-size regressions.
+func TestShadowsocks2022FixtureKeyLength(t *testing.T) {
+	raw, err := fsutil.ReadFileAsString(jsonFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture struct {
+		Inbounds []struct {
+			Settings struct {
+				Method   string `json:"method"`
+				Password string `json:"password"`
+			} `json:"settings"`
+		} `json:"inbounds"`
+	}
+	if err := json.Unmarshal([]byte(raw), &fixture); err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, inbound := range fixture.Inbounds {
+		if inbound.Settings.Method != "2022-blake3-aes-128-gcm" {
+			continue
+		}
+		found = true
+		key, err := base64.StdEncoding.DecodeString(inbound.Settings.Password)
+		if err != nil || len(key) != 16 {
+			t.Fatalf("SS2022 AES-128 fixture key must decode to 16 bytes, got %d: %v", len(key), err)
+		}
+	}
+	if !found {
+		t.Fatal("expected SS2022 AES-128 test inbound")
+	}
+}
 
 func TestXrayBackend(t *testing.T) {
 	xrayFile, err := fsutil.ReadFileAsString(jsonFile)
